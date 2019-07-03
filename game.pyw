@@ -42,7 +42,7 @@ while game_state == True:
             game_state = False ## Ends the 'game loop' by turning it to 'False'
 
         ## Checks if mouse button is down
-        if event.type == pygame.MOUSEBUTTONDOWN:
+        elif event.type == pygame.MOUSEBUTTONDOWN:
 
             ## if, and elifs check whether labels are 'depressed'
             if label_play.is_depressed == True and current_section == "Start":
@@ -56,7 +56,7 @@ while game_state == True:
                 current_section = "Highscores"
 
             elif label_goback.is_depressed == True and (current_section == "Game" or 
-                current_section == "Highscores" or current_section == "Enterscore"):
+                current_section == "Highscores" or current_section == "entername"):
 
                 ## Sets the section to 'Start'
                 current_section = "Start"
@@ -68,16 +68,16 @@ while game_state == True:
                 game_state = False
 
         ## Checks if player is pressing any alphanumeric buttons
-        if event.type == pygame.KEYDOWN and current_section == "Game" and re.match(r'^[A-Za-z0-9_]+$', chr(event.key)):
+        elif event.type == pygame.KEYDOWN and current_section == "Game" and re.match(r'^[A-Za-z0-9_]+$', chr(event.key)):
 
             score += 1
             game_start = True
 
             ## Appends the pressed character into the 'fx_char' list
-            fx_char.append(Label("Raleway-Regular.ttf", 32, f"{chr(event.key)}", WHITE, random.randint(100, 700), 100))
+            fx_char.append(Label("Raleway-Regular.ttf", 32, f"{chr(event.key)}", WHITE, random.randint(175, 600), 100))
 
-        ## Checks key events within the 'Enterscore' section
-        if event.type == pygame.KEYDOWN and current_section == "Enterscore":
+        ## Checks key events within the 'entername' section
+        elif event.type == pygame.KEYDOWN and current_section == "entername":
 
             ## Checks if the length of 'player_name' is less than 16, and if input is alphanumeric
             if len(player_name) <= 16 and re.match(r'^[A-Za-z0-9_]+$', chr(event.key)):
@@ -95,7 +95,7 @@ while game_state == True:
                 with open("highscores.txt", mode = "a", newline="") as csv_file:
 
                     writer = csv.writer(csv_file, delimiter = "|")
-                    writer.writerow(score, ["".join(player_name), today.strftime("%b-%d-%Y")])
+                    writer.writerow([score, "".join(player_name), today.strftime("%b-%d-%Y")])
 
                 current_section = "Start"
 
@@ -132,10 +132,11 @@ while game_state == True:
 
         ## Creates the label objects to update the score, and timer. It's a lazy solution I know LOL
         label_score = Label("Raleway-Regular.ttf", 32, f"Score: {score}", WHITE, 30, 50)
-        label_timer = Label("Raleway-Regular.ttf", 32, f"Time: {round((time / FPS), 1)}s", WHITE, 500, 50)
+        label_timer = Label("Raleway-Regular.ttf", 32, f"Time: {round((time / FPS), 1)}s", WHITE, 620, 50)
 
         ## Special effect: Blits characters typed into the game
         for char in fx_char:
+
             screen.blit(char.rendered_font, char.rect)
 
             if char.rect.y > 420:
@@ -144,19 +145,21 @@ while game_state == True:
 
             char.go_down()
 
-        ## Decrements the 'time' variable by 1
+        ## Decrements the 'time' variable by 1 if game has started, displays text if not
         if game_start == True:
 
             time -= 1
 
-        ## Checks if the 'time' variable is equal or less than 0 (zero).
+        elif game_start == False:
+
+            label_instruction = Label("Raleway-Regular.ttf", 32, "Press any 'alphanumeric' keys to start!", WHITE, 120, 300)
+            screen.blit(label_instruction.rendered_font, label_instruction.rect)
+
+        ## Checks if the 'time' variable is equal or less than 0 (zero), displays the final score,
+        ## then sets the 'current_section' to "Gameover"
         if time <= 0:
-            screen.fill(BLACK)
-            label_gameover = Label("Raleway-Regular.ttf", 32, "Game Over!", WHITE, ((screen_width / 2) - 128), (screen_height / 2))
-            screen.blit(label_gameover.rendered_font, label_gameover.rect)
-            pygame.display.flip()
-            pygame.time.delay(30*FPS)
-            current_section = "Enterscore"
+
+            current_section = "Gameover"
 
         ## Blits the labels, and updates the screen    
         screen.blit(label_score.rendered_font, label_score.rect)
@@ -164,15 +167,35 @@ while game_state == True:
         screen.blit(label_goback.rendered_font, label_goback.rect)
         pygame.display.flip()
 
-    ## 'Enter score' section
-    elif current_section == "Enterscore":
+    ## 'Gameover' setion
+    elif current_section == "Gameover":
+        screen.fill(BLACK)
 
-        label_enterscore_header = Label("Raleway-Regular.ttf", 32, "Enter your name, and press 'Enter' key", WHITE, ((screen_width / 2) - 256), 200)
+        label_finalscore = Label("Raleway-Regular.ttf", 32, f"You got a score of: {score}", WHITE, ((screen_width / 2) - 156), (screen_height / 2) - 50)
+        label_gameover = Label("Raleway-Regular.ttf", 32, "Game Over!", WHITE, ((screen_width / 2) - 156), (screen_height / 2) - 100)
+
+        screen.blit(label_finalscore.rendered_font, label_finalscore.rect)
+        screen.blit(label_gameover.rendered_font, label_gameover.rect)
+        pygame.display.flip()
+        pygame.time.delay(3000)
+        current_section = "entername"
+        clear_tick += 1 ## Increments the clear_tick by 1
+
+    ## 'Entername' section
+    elif current_section == "entername":
+
+        ## Clears the 'player_name' variable when it starts this section
+        if clear_tick == 1:
+            print(player_name)
+            player_name.clear()
+            clear_tick -= 1
+
+        label_entername_header = Label("Raleway-Regular.ttf", 32, "Enter your name, and press 'Enter' key", WHITE, ((screen_width / 2) - 312), 200)
         label_name = Label("Raleway-Regular.ttf", 32, "".join(player_name), WHITE, ((screen_width / 2) - 128), (screen_height / 2))
 
         ## Fills the background with 'BLACK', blits the labels, and updates the screen
         screen.fill(BLACK)
-        screen.blit(label_enterscore_header.rendered_font, label_enterscore_header.rect)
+        screen.blit(label_entername_header.rendered_font, label_entername_header.rect)
         screen.blit(label_name.rendered_font, label_name.rect)
         screen.blit(label_goback.rendered_font, label_goback.rect)
         pygame.display.flip()
@@ -197,11 +220,11 @@ while game_state == True:
 
                 highscore_list.append(row)
 
-        ## Turns the 0th element in the highscore list into an integer
+        ## Turns the 0th element in the current iteration of the highscore list into an integer
         for i in range(len(highscore_list)):
             highscore_list[i][0] = int(highscore_list[i][0])
 
-        ## Sorts the highscore list
+        ## Sorts the highscore list in ascending order
         highscore_list.sort(reverse = True)
 
         ## Checks if 'highscores.txt' file's length is 0 (zero)
@@ -218,16 +241,28 @@ while game_state == True:
                 label_highscore_list = Label("Raleway-Regular.ttf", 16, f"{highscore[0]} | {highscore[1]} | {highscore[2]}", WHITE, 50, 150)
                 highscore_labels.append(label_highscore_list)
 
-        ## Blits the labels, and updates the screen
+        ## Blits the labels
         screen.blit(label_highscore_header.rendered_font, label_highscore_header.rect)
         screen.blit(label_highscore_paragraph.rendered_font, label_highscore_paragraph.rect)
         
         ## Blits all the 'Label' objects from the 'highscore_labels' list onto the screen
-        for label in highscore_labels:
+        if len(highscore_labels) <= 10:
 
-            y_offset += 17
-            screen.blit(label.rendered_font, (label.rect.x, label.rect.y + y_offset))
+            for label in highscore_labels:
 
+                y_offset += 17
+                screen.blit(label.rendered_font, (label.rect.x, label.rect.y + y_offset))
+
+        ## Blits ONLY the first 20 high scores if there is more than 10 scores in the high score list
+        elif len(highscore_labels) > 20:
+
+            for i in range(20):
+
+                y_offset += 17
+                screen.blit(highscore_labels[i].rendered_font, (highscore_labels[i].rect.x, highscore_labels[i].rect.y + y_offset))
+
+
+        ## Blits the 'go_back' label, and then updates the screen
         screen.blit(label_goback.rendered_font, label_goback.rect)
         pygame.display.flip()
 

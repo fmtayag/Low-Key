@@ -30,6 +30,6 @@ Copyright
 	This .zip file / folder, and the contents within cannot be used for any commercial purposes without my permission!
 
 TODO:
-	(i) The high score lists are limited, and can't be scrolled if it exceeds the screen.
+	(i) In the 'game' section, the symbols "blink" before they disappear. It's not game breaking, just a visual glitch.
 
 Thank you for downloading, and enjoy!!

@@ -26,6 +26,8 @@ time = 0
 
 ## Clock, current_section initialize, and today's date
 clock = pygame.time.Clock()
-current_section = "Start" ## Accepts four (4) values: "Start", "Game", "Enterscore", and "Highscore"
+current_section = "Start" ## Accepts five (5) values: "Start", "Game", "Entername", "Gameover", and "Highscore". Glorified 'goto' really LOL.
 today = date.today()
 
+## Clear tick, a variable that is part of an 'if' statement in the 'Enterscore' section. More explanation there.
+clear_tick = 0
