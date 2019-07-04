@@ -111,9 +111,10 @@ while game_state == True:
         ## Clears the 'fx_char' list so that it does not appear when the player goes back to 'Start', and then re-enters the game
         fx_char.clear()
 
-        ## Resets the time, and score
-        time = 30 * FPS
+        ## Resets the time, score, and 'game_start' variable
+        time = 1 * FPS
         score = 0
+        game_start = False
 
         ## Fills the background with 'BLACK', blits the labels, and updates the screen
         screen.fill(BLACK)
