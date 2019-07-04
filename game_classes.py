@@ -40,6 +40,11 @@ class Label():
 
         self.rect.y += 5
 
+    def go_sideways(self):
+
+        self.rect.x -= 2
+        self.rect.y -= 2
+
 ## Objects
 label_title = Label("Raleway-Regular.ttf", 64, "Keyboard Smasher", WHITE, 30, 50)
 label_creator = Label("Raleway-Regular.ttf", 32, "by Etherflux", WHITE, 30, 125)
@@ -47,5 +52,6 @@ label_play = Label("Raleway-Regular.ttf", 32, "Play", WHITE, 100, 400)
 label_highscore = Label("Raleway-Regular.ttf", 32, "High Scores", WHITE, 100, 450)
 label_highscore_header = Label("Raleway-Regular.ttf", 64, "High Scores (Top 20)", WHITE, 30, 50)
 label_highscore_paragraph = Label("Raleway-Regular.ttf", 16, "SCORE | NAME | DATE", WHITE, 30, 130)
+label_music = Label("Raleway-Regular.ttf", 32, "Music", WHITE, 700, 550)
 label_exit = Label("Raleway-Regular.ttf", 32, "Exit", WHITE, 100, 500)
 label_goback = Label("Raleway-Regular.ttf", 32, "Go Back", WHITE, 500, 500)

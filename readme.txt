@@ -29,6 +29,9 @@ Copyright
 	This .zip file / folder, and the contents within are only distributed on my website, and my github account!
 	This .zip file / folder, and the contents within cannot be used for any commercial purposes without my permission!
 
+Credits
+	Game soundtrack 'Off Limits' was downloaded from www.dl-sounds.com
+
 TODO:
 	(i) In the 'game' section, the symbols "blink" before they disappear. It's not game breaking, just a visual glitch.
 

@@ -13,6 +13,7 @@ import os
 import pygame
 import random
 import re
+import string
 
 ## Initialize the 'pygame' library
 pygame.init()
@@ -20,14 +21,39 @@ pygame.init()
 ## Initialize the screen
 screen = pygame.display.set_mode(screen_size)
 pygame.display.set_caption("Keyboard Smasher by Etherflux")
-icon = pygame.image.load("icon.png")
-pygame.display.set_icon(icon)
+try:
+
+    icon = pygame.image.load("images/icon.png")
+    pygame.display.set_icon(icon)
+
+except:
+
+    print("Icon not found!")
+
+try:
+
+    sound = pygame.mixer.Sound("sounds/Off Limits.wav")
+
+except:
+
+    print("Sound not found!")
+
+finally:
+
+    sound.set_volume(0.2)
+    sound_length = sound.get_length()
+    sound_ticks = sound_length * FPS
+
+#print(sound_ticks)
 
 ## Game loop
 while game_state == True:
 
-    ## Clock - locks the FPS to 60
+    ## Clock - locks the FPS to 60. Second statement decrements the sound tick by 1
     clock.tick(FPS)
+
+    if sound_play == 2:
+        sound_ticks -= 1
 
     ## Track mouse position
     mouse_pos = pygame.mouse.get_pos()
@@ -67,6 +93,19 @@ while game_state == True:
                 ## Ends the 'game loop' by turning it to 'False'
                 game_state = False
 
+            elif label_music.is_depressed == True and current_section == "Start":
+
+                ## Toggles the music
+                if sound_play >= 1:
+
+                    sound_play = 0
+                    sound_ticks = 0
+
+                elif sound_play == 0:
+
+                    sound_play = 1
+                    sound_ticks = sound_length * FPS
+
         ## Checks if player is pressing any alphanumeric buttons
         elif event.type == pygame.KEYDOWN and current_section == "Game" and re.match(r'^[A-Za-z0-9_]+$', chr(event.key)):
 
@@ -99,14 +138,39 @@ while game_state == True:
 
                 current_section = "Start"
 
-    # Runs 'depress' method
-    label_play.depress(mouse_pos)
-    label_highscore.depress(mouse_pos)
-    label_goback.depress(mouse_pos)
-    label_exit.depress(mouse_pos)
+    ## Controls the music
+    if sound_play == 1 and sound_ticks >= 0:
+
+        sound.play()
+        sound_play = 2
+        print("Triggered!")
+
+    elif sound_play == 0:
+
+        sound.stop()
+
+    elif sound_ticks <= 0:
+
+        sound_ticks = sound_length * FPS
+        sound_play = 1
 
     ## 'Start' section
     if current_section == "Start":
+
+        ## Runs 'depress' method
+        label_play.depress(mouse_pos)
+        label_highscore.depress(mouse_pos)
+        label_goback.depress(mouse_pos)
+        label_exit.depress(mouse_pos)
+        label_music.depress(mouse_pos)
+
+        ## Special Effect 2
+        if not fx_char2 or len(fx_char2) <= 135:
+
+            fx_char2.append(Label("Raleway-Regular.ttf", 32, random.choice(string.ascii_letters), 
+                                (75, 75, 75), random.randint(0, 1400), random.randint(600, 650)))
+            fx_char2.append(Label("Raleway-Regular.ttf", 32, random.choice(string.ascii_letters), 
+                                (50, 50, 50), random.randint(0, 1400), random.randint(675, 1200)))
 
         ## Clears the 'fx_char' list so that it does not appear when the player goes back to 'Start', and then re-enters the game
         fx_char.clear()
@@ -118,7 +182,19 @@ while game_state == True:
 
         ## Fills the background with 'BLACK', blits the labels, and updates the screen
         screen.fill(BLACK)
+
+        ## Special Effect 2
+        for char in fx_char2:
+
+            screen.blit(char.rendered_font, char.rect)
+            char.go_sideways()
+
+            if char.rect.x <= -35 and char.rect.y <= -35:
+
+                fx_char2.remove(char)
+
         screen.blit(label_title.rendered_font, label_title.rect)
+        screen.blit(label_music.rendered_font, label_music.rect)
         screen.blit(label_creator.rendered_font, label_creator.rect)
         screen.blit(label_play.rendered_font, label_play.rect)
         screen.blit(label_highscore.rendered_font, label_highscore.rect)
@@ -127,6 +203,12 @@ while game_state == True:
 
     ## 'Game' section
     elif current_section == "Game":
+
+        ## Runs 'depress' method
+        label_goback.depress(mouse_pos)
+
+        ## clears the fx_char2 list to reduce lag
+        fx_char2.clear()
 
         ## Fills the background with 'BLACK'
         screen.fill(BLACK)
@@ -140,7 +222,7 @@ while game_state == True:
 
             screen.blit(char.rendered_font, char.rect)
 
-            if char.rect.y > 420:
+            if char.rect.y >= 420:
 
                 fx_char.remove(char)
 
@@ -185,6 +267,9 @@ while game_state == True:
     ## 'Entername' section
     elif current_section == "entername":
 
+        ## Runs 'depress' method
+        label_goback.depress(mouse_pos)
+
         ## Clears the 'player_name' variable when it starts this section
         if clear_tick == 1:
             print(player_name)
@@ -203,6 +288,12 @@ while game_state == True:
 
     ## 'High Scores' section
     elif current_section == "Highscores":
+
+        ## Runs 'depress' method
+        label_goback.depress(mouse_pos)
+
+        ## clears the fx_char2 list to reduce lag
+        fx_char2.clear()
 
         ## Miscellaneous variables
         highscore_list = list()
