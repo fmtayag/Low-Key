@@ -112,7 +112,7 @@ while game_state == True:
         fx_char.clear()
 
         ## Resets the time, score, and 'game_start' variable
-        time = 1 * FPS
+        time = 30 * FPS
         score = 0
         game_start = False
 
