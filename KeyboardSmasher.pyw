@@ -6,17 +6,19 @@
 ## Import all needed libraries
 import pygame
 
-## Import local libraries
-from classes import *
-from constants import *
+if __name__ == "__main__":
+    
+    ## Import local libraries
+    from classes import Game, Label
+    from constants import *
 
-## Initialize the 'pygame' library
-pygame.init()
+    ## Initialize the 'pygame' library
+    pygame.init()
 
-## Creates a Game object, and runs the 'game_loop' method
-game = Game()
-game.game_loop()
+    ## Creates a Game object, and runs the 'game_loop' method
+    game = Game()
+    game.game_loop()
 
-## Closes 'pygame', and closes the program
-pygame.quit()
-exit()
+    ## Closes 'pygame', and closes the program
+    pygame.quit()
+    exit()
