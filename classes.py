@@ -1,3 +1,4 @@
+## Import all needed libraries
 import csv
 import os
 import pygame
@@ -205,16 +206,8 @@ class Game:
             ## Fills the background with black
             self.screen.fill(BLACK)
 
-            ## Blits the effect from the list
-            for label in effect_char_list:
-
-                self.screen.blit(label.render(), label.position)
-                label.go_down()
-
-                ## Deletes labels that have reached a boundary to reduce lag
-                if label.position[1] >= 375:
-
-                    effect_char_list.remove(label)
+            ## Label rain effect
+            self.label_rain(effect_char_list)
 
             ## Blits surfaces onto the screen surface
             self.screen.blit(label_score.render(), label_score.position)
@@ -395,6 +388,21 @@ class Game:
 
             ## Updates, or "flips" the screen
             pygame.display.flip()
+
+    ## 'Label rain' effect
+    def label_rain(self, char_list):
+
+        ## Loops through list
+        for label in char_list:
+
+            ## Blits the label, and runs the label's 'go_down' method
+            self.screen.blit(label.render(), label.position)
+            label.go_down()
+
+            ## Deletes labels that have reached a boundary to reduce lag
+            if label.position[1] >= 375:
+
+                char_list.remove(label)
 
 ## The 'Label' class, for texts
 class Label:
