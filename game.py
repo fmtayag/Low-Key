@@ -4,6 +4,8 @@ import pygame, os
 from pygame.locals import *
 from random import randrange, choice, choices
 from itertools import repeat
+from data.scripts.sprites import Key, Particle, Shockwave, PulsatingText
+from data.scripts.constants import *
 
 # Initialize pygame
 pygame.init()
@@ -14,31 +16,14 @@ AUTHOR = "zyenapz"
 EMAIL = "zyenapz@gmail.com"
 WEBSITE = "zyenapz.github.io"
 
-WIN_S = {"128x128": (128, 128),
-         "256x256": (256, 256),
-         "512x512": (512, 512),
-         "1024x1024": (1024,1024)}
-WIN_CS = "512x512" # current size
-
 # Directories
 GAME_DIR = os.path.dirname(__file__)
 DATA_DIR = os.path.join(GAME_DIR, "data")
 IMG_DIR = os.path.join(DATA_DIR, "img")
 FONT_DIR = os.path.join(DATA_DIR, "fonts")
-
-# Palette
-PALETTE = {"WHITE": (241,242,255),
-           "BLACK": (20,18,29),
-           "BLUE": (39,137,205),
-           "CYAN": (115,239,232),
-           "ORANGE": (232,138,54)}
-
-BG_COLOR = PALETTE["BLACK"]
-
-# Font
 GAME_FONT = os.path.join(FONT_DIR, "prstartk.ttf")
 
-def load_keys(letters, sprites, K_SIZE, color):
+def load_keys(letters, sprites, key_sprites, K_SIZE, color, font):
     x = 0 # x offset
     y = 0 # y offset
     o = 0 # row offset
@@ -50,15 +35,18 @@ def load_keys(letters, sprites, K_SIZE, color):
         for letter in row:
             x_pos = K_SIZE*x + (x*K_SIZE/8) + (16*o)
             y_pos = 38*y
-            key = Key(letter, x_pos + KB_XPOS, y_pos + KB_YPOS, K_SIZE, color)
+            key = Key(letter, x_pos + KB_XPOS, y_pos + KB_YPOS, K_SIZE, color, font)
             sprites.add(key)
+            key_sprites.add(key)
             x += 1
         y += 1
         o += 1
 
-def spawn_particles(particles, x, y, color, amount):
+def spawn_particles(sprites, particles, x, y, color, amount):
     for _ in range(amount):
-        particles.add(Particle(x, y, color))
+        p = Particle(x, y, color)
+        particles.add(p)
+        sprites.add(p)
 
 def shake(intensity, n):
     # Credits to sloth from StackOverflow, thanks buddy!
@@ -95,24 +83,39 @@ class SceneManager(object):
 
 class GameScene(Scene):
     def __init__(self):
+        # Game variables
+        self.score = 0
+
         # Sprite groups
         self.sprites = pygame.sprite.Group()
+        self.key_sprites = pygame.sprite.Group()
         self.particles = pygame.sprite.Group()
-        self.chars = list()
 
         # Color of the objects
         self.color = "ORANGE"
 
         # Keys
-        K_SIZE = 32
-        letters = ["1234567890-=",
-                   "QWERTYUIOP[]",
-                   "ASDFGHJKL;'",
-                   "ZXCVBNM,./"]
-        load_keys(letters, self.sprites, K_SIZE, self.color)
+        self.K_SIZE = 32 # key size
+        self.letters = ["1234567890-=",
+                        "QWERTYUIOP[]",
+                        "ASDFGHJKL;'",
+                        "ZXCVBNM,./"]
+        load_keys(self.letters, self.sprites, self.key_sprites, self.K_SIZE, self.color, GAME_FONT)
+        self.chars = list()
+
         # For screen shake
         self.offset = repeat((0,0))
         
+        # Texts
+        self.text_score = PulsatingText(WIN_S[WIN_CS][0]/2, 100, self.score, GAME_FONT, 48, "ORANGE")
+        self.text_title = PulsatingText(88,16, "Keyboard", GAME_FONT, 16, "WHITE")
+        self.text_title2 = PulsatingText(88,32, "Smasher", GAME_FONT, 16, "WHITE")
+        self.text_ver = PulsatingText(78,48, "v.A5", GAME_FONT, 16, "WHITE")
+        self.sprites.add(self.text_score)
+        self.sprites.add(self.text_ver)
+        self.sprites.add(self.text_title)
+        self.sprites.add(self.text_title2)
+
     def handle_events(self):
 
         # Get pressed characters
@@ -129,98 +132,39 @@ class GameScene(Scene):
     def update(self):
         
         if len(self.chars) != 0:
-            for sprite in self.sprites:
+            for sprite in self.key_sprites:
                 if sprite.text.lower() in self.chars and not sprite.pressed:
                     sprite.unhide()
                     sprite.pressed = True
-                    spawn_particles(self.particles, sprite.rect.centerx, sprite.rect.centery, self.color, 2)
+
+                    # Add score
+                    self.score += 1
+                    self.text_score.text = self.score
+
+                    # Spawn particle
+                    spawn_particles(self.sprites, self.particles, sprite.rect.centerx, sprite.rect.centery, self.color, 2)
+                    # Produce iterable for screen sahke
                     self.offset = shake(10,5)
+                    # Spawn shockwave / ripple...whatever you call it
+                    s = Shockwave(sprite.rect.centerx, sprite.rect.centery, self.color, self.K_SIZE)
+                    self.sprites.add(s)
         
-        for sprite in self.sprites:
+        for sprite in self.key_sprites:
             if sprite.text.lower() not in self.chars:
                 sprite.pressed = False
                     
         self.sprites.update()
-        self.particles.update()
 
     def draw(self, window):
         window.fill(BG_COLOR)
         self.sprites.draw(window)
-        self.particles.draw(window)
         window.blit(window, next(self.offset))
-
-class Key(pygame.sprite.Sprite):
-    def __init__(self, text, x, y, K_SIZE, color):
-        super().__init__()
-        self.color = color
-        self.K_SIZE = K_SIZE
-        self.image = pygame.Surface((self.K_SIZE,self.K_SIZE))
-        self.image.fill(BG_COLOR)
-        self.rect = self.image.get_rect()
-        self.rect.centerx = x
-        self.rect.centery = y
-        self.text = text
-        self.font = pygame.font.Font(GAME_FONT, self.K_SIZE//2)
-        self.hidden = True
-        self.hide_timer = pygame.time.get_ticks()
-        self.hide_delay = 250
-        self.alpha = 255
-        self.pressed = False
-        #self.unhide()
-        
-    def update(self):
-        if not self.hidden:
-            self.hide()
-        
-    def unhide(self):
-        self.hidden = False
-        self.alpha = 255
-        #pygame.draw.polygon(self.image, PALETTE[self.color], [(10,0),(0,10),(20,10),(10,20)], 1)
-        pygame.draw.rect(self.image, PALETTE[self.color], (0,0,self.K_SIZE,self.K_SIZE), 8)
-        self.r_font = self.font.render(self.text, 0, PALETTE[self.color])
-        self.image.blit(self.r_font, (9,8))
-        self.image.set_alpha(self.alpha)
-        self.hide_timer = pygame.time.get_ticks()
-
-    def hide(self):
-        now = pygame.time.get_ticks()
-        if now - self.hide_timer > self.hide_delay:
-            self.alpha -= 10
-            self.image.set_alpha(self.alpha)
-            if self.alpha <= 0:
-                self.hidden = True
-
-class Particle(pygame.sprite.Sprite):
-    def __init__(self, x, y, color):
-        super().__init__()
-        self.image = pygame.Surface((8,8))
-        self.image.fill(PALETTE[color])
-        self.rect = self.image.get_rect()
-        self.rect.x = x
-        self.rect.y = y
-        self.movspd = 8
-        self.spdx = choice([num for num in range(-8,8) if num not in [-2,-1,0,1,2]])
-        self.spdy = choice([num for num in range(-6,6) if num not in [-2,-1,0,1,2]])
-        self.size = choice([8,12])
-
-    def update(self):
-        self.rect.x += self.spdx
-        self.rect.y += self.spdy
-        if self.spdx > 0:
-            self.spdx -= 0.1
-        if self.spdy < self.movspd:
-            self.spdy += 0.1
-        elif self.spdy > self.movspd:
-            self.spdy -= 0.1
-
-        if self.rect.y > WIN_S[WIN_CS][1]:
-            self.kill()
     
 # Application loop
 def main():
 
     # Initialize the window
-    window = pygame.display.set_mode(WIN_S[WIN_CS], HWSURFACE|DOUBLEBUF|NOFRAME)
+    window = pygame.display.set_mode(WIN_S[WIN_CS], HWSURFACE|DOUBLEBUF)
     pygame.display.set_caption(TITLE)
 
     # Loop
