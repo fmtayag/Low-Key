@@ -23,24 +23,31 @@ IMG_DIR = os.path.join(DATA_DIR, "img")
 FONT_DIR = os.path.join(DATA_DIR, "fonts")
 GAME_FONT = os.path.join(FONT_DIR, "prstartk.ttf")
 
-def load_keys(letters, sprites, key_sprites, K_SIZE, color, font):
+def load_keys(letters, sprites, key_sprites, K_SIZE, color, font, shape):
     x = 0 # x offset
     y = 0 # y offset
     o = 0 # row offset
     KB_XPOS = 50 # x pos of the whole keyboard
-    KB_YPOS = 350 # y pos of the whole keyboard
+    KB_YPOS = 320 # y pos of the whole keyboard
 
     for row in letters:
         x = 0
         for letter in row:
             x_pos = K_SIZE*x + (x*K_SIZE/8) + (16*o)
             y_pos = 38*y
-            key = Key(letter, x_pos + KB_XPOS, y_pos + KB_YPOS, K_SIZE, color, font)
+            key = Key(letter, x_pos + KB_XPOS, y_pos + KB_YPOS, K_SIZE, color, font, shape)
             sprites.add(key)
             key_sprites.add(key)
             x += 1
         y += 1
         o += 1
+
+    # Just winging it here.
+    # This is placing the spacebar on the keyboard. Not my proudest block of code.
+    y_pos = 38 * len(letters)
+    key = Key(" ", KB_XPOS + 190,  y_pos + KB_YPOS, K_SIZE, color, font, shape, spacebar=True)
+    sprites.add(key)
+    key_sprites.add(key)
 
 def spawn_particles(sprites, particles, x, y, color, amount):
     for _ in range(amount):
@@ -85,6 +92,8 @@ class GameScene(Scene):
     def __init__(self):
         # Game variables
         self.score = 0
+        self.offset = repeat((0,0))
+        self.timer = 30 * 1000
 
         # Sprite groups
         self.sprites = pygame.sprite.Group()
@@ -92,7 +101,7 @@ class GameScene(Scene):
         self.particles = pygame.sprite.Group()
 
         # Color of the objects
-        self.color = "ORANGE"
+        self.color = "CYAN"
 
         # Keys
         self.K_SIZE = 32 # key size
@@ -100,18 +109,19 @@ class GameScene(Scene):
                         "QWERTYUIOP[]",
                         "ASDFGHJKL;'",
                         "ZXCVBNM,./"]
-        load_keys(self.letters, self.sprites, self.key_sprites, self.K_SIZE, self.color, GAME_FONT)
+        self.key_shape = "roundrect" # rect, roundrect, round, arc
         self.chars = list()
+        load_keys(self.letters, self.sprites, self.key_sprites, self.K_SIZE, self.color, GAME_FONT, self.key_shape)
 
-        # For screen shake
-        self.offset = repeat((0,0))
-        
         # Texts
-        self.text_score = PulsatingText(WIN_S[WIN_CS][0]/2, 100, self.score, GAME_FONT, 48, "ORANGE")
+        self.text_score = PulsatingText(WIN_S[WIN_CS][0]/2, 100, self.score, GAME_FONT, 48, self.color)
+        timer_text = f"T{round((self.timer-pygame.time.get_ticks()) / 1000)}"
+        self.text_time = PulsatingText(256, 152, timer_text, GAME_FONT, 32, "WHITE")
         self.text_title = PulsatingText(88,16, "Keyboard", GAME_FONT, 16, "WHITE")
         self.text_title2 = PulsatingText(88,32, "Smasher", GAME_FONT, 16, "WHITE")
         self.text_ver = PulsatingText(78,48, "v.A5", GAME_FONT, 16, "WHITE")
         self.sprites.add(self.text_score)
+        self.sprites.add(self.text_time)
         self.sprites.add(self.text_ver)
         self.sprites.add(self.text_title)
         self.sprites.add(self.text_title2)
@@ -126,8 +136,7 @@ class GameScene(Scene):
             for i in range(len(list(scan))):
                 if scan[i] == 1:
                     keys_pressed.append(i)
-
-            self.chars = [chr(i) for i in keys_pressed]
+            self.chars = [chr(i) for i in keys_pressed] # note: spacebar ascii conversion is ' '
             
     def update(self):
         
@@ -143,18 +152,22 @@ class GameScene(Scene):
 
                     # Spawn particle
                     spawn_particles(self.sprites, self.particles, sprite.rect.centerx, sprite.rect.centery, self.color, 2)
+
                     # Produce iterable for screen sahke
                     self.offset = shake(10,5)
+
                     # Spawn shockwave / ripple...whatever you call it
                     s = Shockwave(sprite.rect.centerx, sprite.rect.centery, self.color, self.K_SIZE)
                     self.sprites.add(s)
         
+        # Unpress the key if it is not in self.chars
         for sprite in self.key_sprites:
             if sprite.text.lower() not in self.chars:
                 sprite.pressed = False
-                    
-        self.sprites.update()
 
+        self.text_time.text = f"T{round((self.timer-pygame.time.get_ticks()) / 1000)}" # Update timer text
+        self.sprites.update()
+    
     def draw(self, window):
         window.fill(BG_COLOR)
         self.sprites.draw(window)

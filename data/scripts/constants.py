@@ -10,6 +10,7 @@ PALETTE = {"WHITE": (241,242,255),
            "BLACK": (20,18,29),
            "BLUE": (39,137,205),
            "CYAN": (115,239,232),
-           "ORANGE": (232,138,54)}
+           "ORANGE": (232,138,54),
+           "PINK": (206,170,237)}
 
 BG_COLOR = PALETTE["BLACK"]
