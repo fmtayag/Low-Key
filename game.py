@@ -4,7 +4,7 @@ import pygame, os
 from pygame.locals import *
 from random import randrange, choice, choices
 from itertools import repeat
-from data.scripts.sprites import Key, Particle, Shockwave, PulsatingText
+from data.scripts.sprites import Key, Particle, Shockwave, PulsatingText, FadingText
 from data.scripts.constants import *
 
 # Initialize pygame
@@ -109,7 +109,7 @@ class GameScene(Scene):
                         "QWERTYUIOP[]",
                         "ASDFGHJKL;'",
                         "ZXCVBNM,./"]
-        self.key_shape = "roundrect" # rect, roundrect, round, arc
+        self.key_shape = "round" # rect, roundrect, round, arc
         self.chars = list()
         load_keys(self.letters, self.sprites, self.key_sprites, self.K_SIZE, self.color, GAME_FONT, self.key_shape)
 
@@ -117,9 +117,9 @@ class GameScene(Scene):
         self.text_score = PulsatingText(WIN_S[WIN_CS][0]/2, 100, self.score, GAME_FONT, 48, self.color)
         timer_text = f"T{round((self.timer-pygame.time.get_ticks()) / 1000)}"
         self.text_time = PulsatingText(256, 152, timer_text, GAME_FONT, 32, "WHITE")
-        self.text_title = PulsatingText(88,16, "Keyboard", GAME_FONT, 16, "WHITE")
-        self.text_title2 = PulsatingText(88,32, "Smasher", GAME_FONT, 16, "WHITE")
-        self.text_ver = PulsatingText(78,48, "v.A5", GAME_FONT, 16, "WHITE")
+        self.text_title = FadingText(88,16, "Keyboard", GAME_FONT, 16, "WHITE", 1500)
+        self.text_title2 = FadingText(88,32, "Smasher", GAME_FONT, 16, "WHITE", 1500)
+        self.text_ver = FadingText(78,48, "v.A5", GAME_FONT, 16, "WHITE", 1500)
         self.sprites.add(self.text_score)
         self.sprites.add(self.text_time)
         self.sprites.add(self.text_ver)
@@ -181,8 +181,10 @@ def main():
     pygame.display.set_caption(TITLE)
 
     # Loop
+    scene_game = GameScene()
+
     running = True
-    manager = SceneManager(GameScene())
+    manager = SceneManager(scene_game)
     clock = pygame.time.Clock()
     FPS = 60
 
@@ -197,7 +199,7 @@ def main():
         manager.scene.handle_events()
         manager.scene.update()
         manager.scene.draw(window)
-        #print(clock.get_fps())
+        #print(scene_game.score)
         pygame.display.flip()
         
 # Run the application loop

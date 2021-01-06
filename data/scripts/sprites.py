@@ -165,14 +165,14 @@ class PulsatingText(pygame.sprite.Sprite):
     def __init__(self, x, y, text, font_type, size, color):
         super().__init__()
         # The surface
-        self.image = pygame.Surface((size*8,size*8)).convert_alpha()
+        self.image = pygame.Surface((size*8, size*8)).convert_alpha()
         self.image.set_colorkey('black')
         self.rect = self.image.get_rect()
         self.rect.centerx = x
         self.rect.centery = y
 
         # The text
-        self.text = text
+        self.text = str(text)
         self.cur_text = self.text
         self.font_type = font_type
         self.size = size
@@ -212,3 +212,46 @@ class PulsatingText(pygame.sprite.Sprite):
         self.rendered = self.font.render(str(self.text), 0, self.color)
         self.rendered_rect = self.rendered.get_rect(center=(self.image.get_width()/2, self.image.get_height()/2))
         self.image.blit(self.rendered, self.rendered_rect)
+
+class FadingText(pygame.sprite.Sprite):
+    def __init__(self, x, y, text, font_type, size, color, duration, do_kill=True):
+        super().__init__()
+        self.image = pygame.Surface((size*8, size*8)).convert_alpha()
+        self.image.set_colorkey('black')
+        self.rect = self.image.get_rect()
+        self.rect.centerx = x
+        self.rect.centery = y
+
+        # The text
+        self.text = str(text)
+        self.cur_text = self.text
+        self.font_type = font_type
+        self.size = size
+        self.orig_size = self.size
+        self.color = PALETTE[color]
+        self.font = pygame.font.Font(self.font_type, self.size)
+        self.rendered = self.font.render(str(self.text), 0, self.color)
+        self.rendered_rect = self.rendered.get_rect(center=(self.image.get_width()/2, self.image.get_height()/2))
+        self.image.blit(self.rendered, self.rendered_rect)
+
+        # For fading effect
+        self.fade_delay = duration
+        self.fade_timer = pygame.time.get_ticks()
+        self.alpha = 255
+        self.do_kill = do_kill # If the sprite gets deleted if it has faded
+
+    def update(self):
+        self.fade()
+
+        if self.alpha <= 0 and self.do_kill == True:
+            self.kill()
+
+    def fade(self):
+        now = pygame.time.get_ticks()
+        if now - self.fade_timer > self.fade_delay:
+            self.alpha -= 10
+            self.image.set_alpha(self.alpha)
+
+    def unfade(self):
+        self.alpha = 255
+        self.image.set_alpha(self.alpha)
