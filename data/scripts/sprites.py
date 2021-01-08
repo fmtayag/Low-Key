@@ -32,7 +32,7 @@ class Key(pygame.sprite.Sprite):
         
         # For moving arc animation
         self.animate_timer = pygame.time.get_ticks()
-        self.animate_delay = 80
+        self.animate_delay = 50
         self.ca = 0 # current arc config
         self.arcs_config = [
             [1,0,0,1],
@@ -78,25 +78,26 @@ class Key(pygame.sprite.Sprite):
         self.image.fill(BG_COLOR)
 
         if self.shape == "rect":
-            pygame.draw.rect(self.image, PALETTE[self.color], (0,0,self.img_width,self.img_height), 8)
+            pygame.draw.rect(self.image, self.color, (0,0,self.img_width,self.img_height), 8)
         elif self.shape == "roundrect":
-            pygame.draw.rect(self.image, PALETTE[self.color], (0,0,self.img_width,self.img_height), 4, 8)
+            pygame.draw.rect(self.image, self.color, (0,0,self.img_width,self.img_height), 4, 8)
         elif self.shape == "round":
-            pygame.draw.rect(self.image, PALETTE[self.color], (0,0,self.img_width,self.img_height), 4, 32)
+            pygame.draw.rect(self.image, self.color, (0,0,self.img_width,self.img_height), 4, 32)
         elif self.shape == "arc":
-            pygame.draw.circle(self.image, PALETTE[self.color], (self.image.get_width()/2, self.image.get_height()/2), 
+            pygame.draw.circle(self.image, self.color, (self.image.get_width()/2, self.image.get_height()/2), 
                                16, 5, self.arcs[0], self.arcs[1], self.arcs[2], self.arcs[3])
             self.update_arc()
 
-        self.r_font = self.font.render(self.text, 0, PALETTE[self.color])
+        self.r_font = self.font.render(self.text, 0, self.color)
         self.image.blit(self.r_font, (9,8))
 
 class Particle(pygame.sprite.Sprite):
     def __init__(self, x, y, color):
         super().__init__()
+        self.color = choice(color)
         self.size = choice([8,12])
         self.image = pygame.Surface((self.size,self.size)).convert_alpha()
-        self.image.fill(PALETTE[color])
+        self.image.fill(self.color)
         self.rect = self.image.get_rect()
         self.rect.x = x
         self.rect.y = y
@@ -161,11 +162,34 @@ class Shockwave(pygame.sprite.Sprite):
             self.image.set_alpha(self.alpha)
             pygame.draw.circle(self.image, self.color, self.image.get_rect().center, self.radius, self.c_width)
 
+class Text(pygame.sprite.Sprite):
+    def __init__(self, x, y, text, font_type, size, color):
+        super().__init__()
+        self.image = pygame.Surface((size*8 + len(str(text)) * (size/2), size*8)).convert_alpha()
+        self.image.set_colorkey('black')
+        self.rect = self.image.get_rect()
+        self.rect.centerx = x
+        self.rect.centery = y
+
+        # The text
+        self.text = str(text)
+        self.cur_text = self.text
+        self.font_type = font_type
+        self.size = size
+        self.color = color
+        self.font = pygame.font.Font(self.font_type, self.size)
+        self.rendered = self.font.render(str(self.text), 0, self.color)
+        self.rendered_rect = self.rendered.get_rect(center=(self.image.get_width()/2, self.image.get_height()/2))
+        self.image.blit(self.rendered, self.rendered_rect)
+
+    def update(self):
+        pass
+
 class PulsatingText(pygame.sprite.Sprite):
     def __init__(self, x, y, text, font_type, size, color):
         super().__init__()
         # The surface
-        self.image = pygame.Surface((size*8, size*8)).convert_alpha()
+        self.image = pygame.Surface((size*8 + len(str(text)) * 4, size*8)).convert_alpha()
         self.image.set_colorkey('black')
         self.rect = self.image.get_rect()
         self.rect.centerx = x
@@ -177,7 +201,7 @@ class PulsatingText(pygame.sprite.Sprite):
         self.font_type = font_type
         self.size = size
         self.orig_size = self.size
-        self.color = PALETTE[color]
+        self.color = color
         self.font = pygame.font.Font(self.font_type, self.size)
         self.rendered = self.font.render(str(self.text), 0, self.color)
         self.rendered_rect = self.rendered.get_rect(center=(self.image.get_width()/2, self.image.get_height()/2))
@@ -216,7 +240,7 @@ class PulsatingText(pygame.sprite.Sprite):
 class FadingText(pygame.sprite.Sprite):
     def __init__(self, x, y, text, font_type, size, color, duration, do_kill=True):
         super().__init__()
-        self.image = pygame.Surface((size*8, size*8)).convert_alpha()
+        self.image = pygame.Surface((size*8 + len(str(text)) * 4, size*8)).convert_alpha()
         self.image.set_colorkey('black')
         self.rect = self.image.get_rect()
         self.rect.centerx = x
@@ -227,8 +251,7 @@ class FadingText(pygame.sprite.Sprite):
         self.cur_text = self.text
         self.font_type = font_type
         self.size = size
-        self.orig_size = self.size
-        self.color = PALETTE[color]
+        self.color = color
         self.font = pygame.font.Font(self.font_type, self.size)
         self.rendered = self.font.render(str(self.text), 0, self.color)
         self.rendered_rect = self.rendered.get_rect(center=(self.image.get_width()/2, self.image.get_height()/2))

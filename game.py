@@ -4,7 +4,7 @@ import pygame, os
 from pygame.locals import *
 from random import randrange, choice, choices
 from itertools import repeat
-from data.scripts.sprites import Key, Particle, Shockwave, PulsatingText, FadingText
+from data.scripts.sprites import Key, Particle, Shockwave, Text, PulsatingText, FadingText
 from data.scripts.constants import *
 
 # Initialize pygame
@@ -49,9 +49,9 @@ def load_keys(letters, sprites, key_sprites, K_SIZE, color, font, shape):
     sprites.add(key)
     key_sprites.add(key)
 
-def spawn_particles(sprites, particles, x, y, color, amount):
+def spawn_particles(sprites, particles, x, y, colors, amount):
     for _ in range(amount):
-        p = Particle(x, y, color)
+        p = Particle(x, y, colors)
         particles.add(p)
         sprites.add(p)
 
@@ -88,12 +88,41 @@ class SceneManager(object):
         self.scene = scene
         self.scene.manager = self
 
+class TitleScene(Scene):
+    def __init__(self):
+        self.sprites = pygame.sprite.Group()
+
+        self.text_title1 = Text(WIN_S[WIN_CS][0]/2, WIN_S[WIN_CS][1]/4, "Keyboard", GAME_FONT, 48, PALETTE["WHITE"])
+        self.text_title2 = Text(WIN_S[WIN_CS][0]/2, WIN_S[WIN_CS][1]/3, "Smasher", GAME_FONT, 48, PALETTE["WHITE"])
+        self.text_play = Text(WIN_S[WIN_CS][0]/2, WIN_S[WIN_CS][1]/1.5, "[Z] Play", GAME_FONT, 32, PALETTE["WHITE"])
+        self.text_quit = Text(WIN_S[WIN_CS][0]/2, WIN_S[WIN_CS][1]/1.35, "[X] Quit", GAME_FONT, 32, PALETTE["WHITE"])
+
+        self.sprites.add(self.text_title1)
+        self.sprites.add(self.text_title2)
+        self.sprites.add(self.text_play)
+        self.sprites.add(self.text_quit)
+
+    def handle_events(self):
+        pressed = pygame.key.get_pressed()
+        if pressed[pygame.K_z]:
+            self.manager.go_to(GameScene())
+        elif pressed[pygame.K_x]:
+            pygame.quit()
+
+    def update(self): 
+        self.sprites.update()
+
+    def draw(self, window):
+        window.fill(BG_COLOR)
+        self.sprites.draw(window)
+
 class GameScene(Scene):
     def __init__(self):
         # Game variables
         self.score = 0
         self.offset = repeat((0,0))
-        self.timer = 30 * 1000
+        self.timer = 5 * 1000 + pygame.time.get_ticks() # n * 1000. Default: n = 30, Debug: n = 5
+        self.rem_time = round((self.timer-pygame.time.get_ticks()) / 1000)
 
         # Sprite groups
         self.sprites = pygame.sprite.Group()
@@ -101,7 +130,8 @@ class GameScene(Scene):
         self.particles = pygame.sprite.Group()
 
         # Color of the objects
-        self.color = "CYAN"
+        self.color = PALETTE["CYAN"]
+        self.color_palette = PALETTE["CYAN_PAL"]
 
         # Keys
         self.K_SIZE = 32 # key size
@@ -109,17 +139,17 @@ class GameScene(Scene):
                         "QWERTYUIOP[]",
                         "ASDFGHJKL;'",
                         "ZXCVBNM,./"]
-        self.key_shape = "round" # rect, roundrect, round, arc
+        self.key_shape = "arc" # rect, roundrect, round, arc
         self.chars = list()
         load_keys(self.letters, self.sprites, self.key_sprites, self.K_SIZE, self.color, GAME_FONT, self.key_shape)
 
         # Texts
         self.text_score = PulsatingText(WIN_S[WIN_CS][0]/2, 100, self.score, GAME_FONT, 48, self.color)
-        timer_text = f"T{round((self.timer-pygame.time.get_ticks()) / 1000)}"
-        self.text_time = PulsatingText(256, 152, timer_text, GAME_FONT, 32, "WHITE")
-        self.text_title = FadingText(88,16, "Keyboard", GAME_FONT, 16, "WHITE", 1500)
-        self.text_title2 = FadingText(88,32, "Smasher", GAME_FONT, 16, "WHITE", 1500)
-        self.text_ver = FadingText(78,48, "v.A5", GAME_FONT, 16, "WHITE", 1500)
+        timer_text = f"T{self.rem_time}"
+        self.text_time = PulsatingText(256, 152, timer_text, GAME_FONT, 32, PALETTE["WHITE"])
+        self.text_title = Text(88,16, "Keyboard", GAME_FONT, 16, PALETTE["WHITE"])
+        self.text_title2 = Text(88,32, "Smasher", GAME_FONT, 16, PALETTE["WHITE"])
+        self.text_ver = Text(78,48, "v.A5", GAME_FONT, 16, PALETTE["WHITE"])
         self.sprites.add(self.text_score)
         self.sprites.add(self.text_time)
         self.sprites.add(self.text_ver)
@@ -137,6 +167,9 @@ class GameScene(Scene):
                 if scan[i] == 1:
                     keys_pressed.append(i)
             self.chars = [chr(i) for i in keys_pressed] # note: spacebar ascii conversion is ' '
+
+        if self.rem_time <= 0:
+            self.manager.go_to(GameOverScene(self.score))
             
     def update(self):
         
@@ -151,7 +184,7 @@ class GameScene(Scene):
                     self.text_score.text = self.score
 
                     # Spawn particle
-                    spawn_particles(self.sprites, self.particles, sprite.rect.centerx, sprite.rect.centery, self.color, 2)
+                    spawn_particles(self.sprites, self.particles, sprite.rect.centerx, sprite.rect.centery, self.color_palette, 2)
 
                     # Produce iterable for screen sahke
                     self.offset = shake(10,5)
@@ -165,13 +198,53 @@ class GameScene(Scene):
             if sprite.text.lower() not in self.chars:
                 sprite.pressed = False
 
-        self.text_time.text = f"T{round((self.timer-pygame.time.get_ticks()) / 1000)}" # Update timer text
+        # Update time
+        if self.rem_time <= 0:
+            self.rem_time = 0
+        else:
+            self.rem_time = round((self.timer-pygame.time.get_ticks()) / 1000)
+
+        self.text_time.text = f"T{self.rem_time}" # Update timer text
+
+        # Update sprites
         self.sprites.update()
-    
+
     def draw(self, window):
         window.fill(BG_COLOR)
         self.sprites.draw(window)
         window.blit(window, next(self.offset))
+
+class GameOverScene(Scene):
+    def __init__(self, score):
+        self.score = score
+
+        # Sprites
+        self.sprites = pygame.sprite.Group()
+
+        # Texts
+        self.text_go = Text(WIN_S[WIN_CS][0]/2, WIN_S[WIN_CS][1]/3, "Game Over", GAME_FONT, 48, PALETTE["WHITE"])
+        self.text_score = Text(WIN_S[WIN_CS][0]/2, WIN_S[WIN_CS][1]/2, self.score, GAME_FONT, 32, PALETTE["WHITE"])
+        # TODO - make a comments function, complimenting the player
+        self.text_comment = Text(WIN_S[WIN_CS][0]/2, WIN_S[WIN_CS][1]/1.6, "Pretty good!", GAME_FONT, 32, PALETTE["WHITE"])
+        self.text_return = Text(WIN_S[WIN_CS][0]/2, WIN_S[WIN_CS][1]/1.4, "[R] Return", GAME_FONT, 32, PALETTE["WHITE"])
+
+        self.sprites.add(self.text_go)
+        self.sprites.add(self.text_score)
+        self.sprites.add(self.text_comment)
+        self.sprites.add(self.text_return)
+
+    def handle_events(self):
+        pressed = pygame.key.get_pressed()
+        if pressed[pygame.K_r]:
+            self.manager.go_to(TitleScene())
+
+
+    def update(self):
+        self.sprites.update()
+
+    def draw(self, window):
+        window.fill(BG_COLOR)
+        self.sprites.draw(window)
     
 # Application loop
 def main():
@@ -181,10 +254,8 @@ def main():
     pygame.display.set_caption(TITLE)
 
     # Loop
-    scene_game = GameScene()
-
     running = True
-    manager = SceneManager(scene_game)
+    manager = SceneManager(TitleScene())
     clock = pygame.time.Clock()
     FPS = 60
 
@@ -199,7 +270,7 @@ def main():
         manager.scene.handle_events()
         manager.scene.update()
         manager.scene.draw(window)
-        #print(scene_game.score)
+
         pygame.display.flip()
         
 # Run the application loop
