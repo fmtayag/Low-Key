@@ -4,7 +4,7 @@ import pygame, os
 from pygame.locals import *
 from random import randrange, choice, choices
 from itertools import repeat
-from data.scripts.sprites import Key, Particle, Shockwave, Text, PulsatingText, FadingText
+from data.scripts.sprites import Key, Particle, Shockwave, Text, PulsatingText, FadingText, Bubble
 from data.scripts.constants import *
 
 # Initialize pygame
@@ -71,7 +71,7 @@ class Scene():
     def __init__(self):
         pass
     
-    def handle_events(self):
+    def handle_events(self, events):
         raise NotImplementedError
     
     def update(self):
@@ -90,30 +90,45 @@ class SceneManager(object):
 
 class TitleScene(Scene):
     def __init__(self):
+        # Sprite groups
         self.sprites = pygame.sprite.Group()
+        self.bubbles = pygame.sprite.Group()
 
-        self.text_title1 = Text(WIN_S[WIN_CS][0]/2, WIN_S[WIN_CS][1]/4, "Keyboard", GAME_FONT, 48, PALETTE["WHITE"])
-        self.text_title2 = Text(WIN_S[WIN_CS][0]/2, WIN_S[WIN_CS][1]/3, "Smasher", GAME_FONT, 48, PALETTE["WHITE"])
-        self.text_play = Text(WIN_S[WIN_CS][0]/2, WIN_S[WIN_CS][1]/1.5, "[Z] Play", GAME_FONT, 32, PALETTE["WHITE"])
-        self.text_quit = Text(WIN_S[WIN_CS][0]/2, WIN_S[WIN_CS][1]/1.35, "[X] Quit", GAME_FONT, 32, PALETTE["WHITE"])
+        # Color of the objects
+        self.color = PALETTE["CYAN"]
+        self.color_palette = PALETTE["CYAN_PAL"]
+
+        # Texts
+        self.text_title1 = Text(WIN_SZ[0]/2, WIN_SZ[1]/4, "Keyboard", GAME_FONT, 48, PALETTE["WHITE"])
+        self.text_title2 = Text(WIN_SZ[0]/2, WIN_SZ[1]/3, "Smasher", GAME_FONT, 48, PALETTE["WHITE"])
+        self.text_play = Text(WIN_SZ[0]/2, WIN_SZ[1]/1.5, "[Z] Play", GAME_FONT, 32, PALETTE["WHITE"])
+        self.text_quit = Text(WIN_SZ[0]/2, WIN_SZ[1]/1.35, "[X] Quit", GAME_FONT, 32, PALETTE["WHITE"])
 
         self.sprites.add(self.text_title1)
         self.sprites.add(self.text_title2)
         self.sprites.add(self.text_play)
         self.sprites.add(self.text_quit)
 
-    def handle_events(self):
-        pressed = pygame.key.get_pressed()
-        if pressed[pygame.K_z]:
-            self.manager.go_to(GameScene())
-        elif pressed[pygame.K_x]:
-            pygame.quit()
+    def handle_events(self, events):
+        for event in events:
+            if event.type == pygame.KEYDOWN:
+                if event.key == pygame.K_z:
+                    self.manager.go_to(GameScene())
+                elif event.key == pygame.K_x:
+                    pygame.quit() # TODO - Makes the update() function throw exceptions, but it is inconsequential
 
     def update(self): 
+        # Spawn bubbles
+        if len(self.bubbles) <= 20:
+            b = Bubble(WIN_SZ, PALETTE["CYAN_PAL"])
+            self.bubbles.add(b)
+
         self.sprites.update()
+        self.bubbles.update()
 
     def draw(self, window):
         window.fill(BG_COLOR)
+        self.bubbles.draw(window)
         self.sprites.draw(window)
 
 class GameScene(Scene):
@@ -121,13 +136,16 @@ class GameScene(Scene):
         # Game variables
         self.score = 0
         self.offset = repeat((0,0))
-        self.timer = 5 * 1000 + pygame.time.get_ticks() # n * 1000. Default: n = 30, Debug: n = 5
-        self.rem_time = round((self.timer-pygame.time.get_ticks()) / 1000)
+        self.cur_ticks = 0
+        self.timer = 30 * 1000 + self.cur_ticks # n * 1000. Default: n = 30, Debug: n = 5
+        self.rem_time = round((self.timer-self.cur_ticks) / 1000)
+        self.is_paused = False
 
         # Sprite groups
         self.sprites = pygame.sprite.Group()
         self.key_sprites = pygame.sprite.Group()
         self.particles = pygame.sprite.Group()
+        self.bubbles = pygame.sprite.Group()
 
         # Color of the objects
         self.color = PALETTE["CYAN"]
@@ -139,12 +157,12 @@ class GameScene(Scene):
                         "QWERTYUIOP[]",
                         "ASDFGHJKL;'",
                         "ZXCVBNM,./"]
-        self.key_shape = "arc" # rect, roundrect, round, arc
+        self.key_shape = "roundrect" # rect, roundrect, round, arc
         self.chars = list()
         load_keys(self.letters, self.sprites, self.key_sprites, self.K_SIZE, self.color, GAME_FONT, self.key_shape)
 
         # Texts
-        self.text_score = PulsatingText(WIN_S[WIN_CS][0]/2, 100, self.score, GAME_FONT, 48, self.color)
+        self.text_score = PulsatingText(WIN_SZ[0]/2, 100, self.score, GAME_FONT, 48, self.color)
         timer_text = f"T{self.rem_time}"
         self.text_time = PulsatingText(256, 152, timer_text, GAME_FONT, 32, PALETTE["WHITE"])
         self.text_title = Text(88,16, "Keyboard", GAME_FONT, 16, PALETTE["WHITE"])
@@ -156,63 +174,94 @@ class GameScene(Scene):
         self.sprites.add(self.text_title)
         self.sprites.add(self.text_title2)
 
-    def handle_events(self):
+        # For the pause screen
+        self.paused_texts = pygame.sprite.Group()
+        txt_paused = Text(WIN_SZ[0]/2, WIN_SZ[1]/2, "PAUSED", GAME_FONT, 48, PALETTE["WHITE"])
+        txt_resume = Text(WIN_SZ[0]/2, WIN_SZ[1]/1.65, "[ESC] Resume", GAME_FONT, 24, PALETTE["WHITE"])
+        txt_exit = Text(WIN_SZ[0]/2, WIN_SZ[1]/1.50, "[X] Exit", GAME_FONT, 24, PALETTE["WHITE"])
+        self.paused_texts.add(txt_paused)
+        self.paused_texts.add(txt_resume)
+        self.paused_texts.add(txt_exit)
 
-        # Get pressed characters
-        keys_pressed = list()
-        scan = pygame.key.get_pressed()
-        self.chars[:] = []
-        if 1 in list(scan):
-            for i in range(len(list(scan))):
-                if scan[i] == 1:
-                    keys_pressed.append(i)
-            self.chars = [chr(i) for i in keys_pressed] # note: spacebar ascii conversion is ' '
+    def handle_events(self, events):
+        
+        for event in events:
+            if event.type == pygame.KEYDOWN:
+                if event.key == pygame.K_ESCAPE:
+                    self.is_paused = not self.is_paused
+                if event.key == pygame.K_x and self.is_paused:
+                    self.manager.go_to(TitleScene())
+        
+        if not self.is_paused:
+            # Get pressed characters
+            keys_pressed = list()
+            scan = pygame.key.get_pressed()
+            self.chars[:] = []
+            if 1 in list(scan):
+                for i in range(len(list(scan))):
+                    if scan[i] == 1:
+                        keys_pressed.append(i)
+                self.chars = [chr(i) for i in keys_pressed] # note: spacebar ascii conversion is ' '
 
-        if self.rem_time <= 0:
-            self.manager.go_to(GameOverScene(self.score))
+            if self.rem_time <= 0:
+                self.manager.go_to(GameOverScene(self.score))
             
     def update(self):
         
-        if len(self.chars) != 0:
+        if not self.is_paused:
+
+            # Increment current ticks
+            self.cur_ticks += 10
+
+            if len(self.chars) != 0:
+                for sprite in self.key_sprites:
+                    if sprite.text.lower() in self.chars and not sprite.pressed:
+                        sprite.unhide()
+                        sprite.pressed = True
+
+                        # Add score
+                        self.score += 1
+                        self.text_score.text = self.score
+
+                        # Spawn particle
+                        spawn_particles(self.sprites, self.particles, sprite.rect.centerx, sprite.rect.centery, self.color_palette, 2)
+
+                        # Produce iterable for screen sahke
+                        self.offset = shake(10,5)
+
+                        # Spawn shockwave / ripple...whatever you call it
+                        s = Shockwave(sprite.rect.centerx, sprite.rect.centery, self.color, self.K_SIZE)
+                        self.sprites.add(s)
+            
+            # Spawn bubbles
+            if len(self.bubbles) <= self.score // 50 and len(self.bubbles) <= 20:
+                b = Bubble(WIN_SZ, PALETTE["CYAN_PAL"])
+                self.sprites.add(b)
+                self.bubbles.add(b)
+
+            # Unpress the key if it is not in self.chars
             for sprite in self.key_sprites:
-                if sprite.text.lower() in self.chars and not sprite.pressed:
-                    sprite.unhide()
-                    sprite.pressed = True
+                if sprite.text.lower() not in self.chars:
+                    sprite.pressed = False
 
-                    # Add score
-                    self.score += 1
-                    self.text_score.text = self.score
+            # Update time
+            if self.rem_time <= 0:
+                self.rem_time = 0
+            else:
+                self.rem_time = round((self.timer-self.cur_ticks) / 1000)
 
-                    # Spawn particle
-                    spawn_particles(self.sprites, self.particles, sprite.rect.centerx, sprite.rect.centery, self.color_palette, 2)
+            self.text_time.text = f"T{self.rem_time}" # Update timer text
 
-                    # Produce iterable for screen sahke
-                    self.offset = shake(10,5)
-
-                    # Spawn shockwave / ripple...whatever you call it
-                    s = Shockwave(sprite.rect.centerx, sprite.rect.centery, self.color, self.K_SIZE)
-                    self.sprites.add(s)
-        
-        # Unpress the key if it is not in self.chars
-        for sprite in self.key_sprites:
-            if sprite.text.lower() not in self.chars:
-                sprite.pressed = False
-
-        # Update time
-        if self.rem_time <= 0:
-            self.rem_time = 0
-        else:
-            self.rem_time = round((self.timer-pygame.time.get_ticks()) / 1000)
-
-        self.text_time.text = f"T{self.rem_time}" # Update timer text
-
-        # Update sprites
+            # Update sprites
         self.sprites.update()
 
     def draw(self, window):
-        window.fill(BG_COLOR)
-        self.sprites.draw(window)
-        window.blit(window, next(self.offset))
+        if not self.is_paused:
+            window.fill(BG_COLOR)
+            self.sprites.draw(window)
+            window.blit(window, next(self.offset))
+        else:
+            self.paused_texts.draw(window)
 
 class GameOverScene(Scene):
     def __init__(self, score):
@@ -222,22 +271,21 @@ class GameOverScene(Scene):
         self.sprites = pygame.sprite.Group()
 
         # Texts
-        self.text_go = Text(WIN_S[WIN_CS][0]/2, WIN_S[WIN_CS][1]/3, "Game Over", GAME_FONT, 48, PALETTE["WHITE"])
-        self.text_score = Text(WIN_S[WIN_CS][0]/2, WIN_S[WIN_CS][1]/2, self.score, GAME_FONT, 32, PALETTE["WHITE"])
+        self.text_go = Text(WIN_SZ[0]/2, WIN_SZ[1]/3, "Game Over", GAME_FONT, 48, PALETTE["WHITE"])
+        self.text_score = Text(WIN_SZ[0]/2, WIN_SZ[1]/2, self.score, GAME_FONT, 32, PALETTE["WHITE"])
         # TODO - make a comments function, complimenting the player
-        self.text_comment = Text(WIN_S[WIN_CS][0]/2, WIN_S[WIN_CS][1]/1.6, "Pretty good!", GAME_FONT, 32, PALETTE["WHITE"])
-        self.text_return = Text(WIN_S[WIN_CS][0]/2, WIN_S[WIN_CS][1]/1.4, "[R] Return", GAME_FONT, 32, PALETTE["WHITE"])
+        self.text_comment = Text(WIN_SZ[0]/2, WIN_SZ[1]/1.6, "Pretty good!", GAME_FONT, 32, PALETTE["WHITE"])
+        self.text_return = Text(WIN_SZ[0]/2, WIN_SZ[1]/1.4, "[R] Return", GAME_FONT, 32, PALETTE["WHITE"])
 
         self.sprites.add(self.text_go)
         self.sprites.add(self.text_score)
         self.sprites.add(self.text_comment)
         self.sprites.add(self.text_return)
 
-    def handle_events(self):
+    def handle_events(self, events):
         pressed = pygame.key.get_pressed()
         if pressed[pygame.K_r]:
             self.manager.go_to(TitleScene())
-
 
     def update(self):
         self.sprites.update()
@@ -250,7 +298,7 @@ class GameOverScene(Scene):
 def main():
 
     # Initialize the window
-    window = pygame.display.set_mode(WIN_S[WIN_CS], HWSURFACE|DOUBLEBUF)
+    window = pygame.display.set_mode(WIN_SZ, HWSURFACE|DOUBLEBUF)
     pygame.display.set_caption(TITLE)
 
     # Loop
@@ -260,19 +308,18 @@ def main():
     FPS = 60
 
     while running:
-
+        
         clock.tick(FPS)
         
-        for event in pygame.event.get():
-            if event.type == QUIT:
-                running = False
+        if pygame.event.get(QUIT):
+            running = False
 
-        manager.scene.handle_events()
+        manager.scene.handle_events(pygame.event.get())
         manager.scene.update()
         manager.scene.draw(window)
 
         pygame.display.flip()
-        
+    
 # Run the application loop
 main()
 

@@ -1,20 +1,20 @@
 # Window sizes
-WIN_S = {"128x128": (128, 128),
-         "256x256": (256, 256),
-         "512x512": (512, 512),
-         "1024x1024": (1024,1024)}
-WIN_CS = "512x512" # current size
+WIN_SZ = [512,512]
 
 # Palette
 PALETTE = {"WHITE": (241,242,255),
            "BLACK": (20,18,29),
            "BLUE": (39,137,205),
-           "CYAN": (115,239,232),
            "ORANGE": (232,138,54),
            "PINK": (206,170,237),
+           "CYAN": (115,239,232),
            "CYAN_PAL": [(241,242,255),
                         (115,239,232),
                         (66,191,232)]
             }
 
-BG_COLOR = PALETTE["BLACK"]
+BG_PALETTE = {"WHITE": (241,242,255),
+              "BLACK": (20,18,29)
+            }
+
+BG_COLOR = BG_PALETTE["BLACK"]

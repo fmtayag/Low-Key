@@ -278,3 +278,38 @@ class FadingText(pygame.sprite.Sprite):
     def unfade(self):
         self.alpha = 255
         self.image.set_alpha(self.alpha)
+
+class Bubble(pygame.sprite.Sprite):
+    def __init__(self, win_size, colors):
+        super().__init__()
+        self.color = choice(colors)
+        self.size = randrange(8,32)
+        self.image = pygame.Surface((self.size,self.size)).convert_alpha()
+        self.image.fill(BG_COLOR)
+        self.img_width = self.image.get_width()
+        self.img_height = self.image.get_height()
+        self.alpha = 0
+        self.alpha_change = randrange(5,10)
+        self.image.set_alpha(self.alpha)
+        self.rect = self.image.get_rect()
+        self.rect.x = randrange(0, win_size[0])
+        self.rect.y = randrange(0, win_size[1])
+        self.spdy = randrange(-4, -2)
+        self.is_fading = False
+        pygame.draw.rect(self.image, self.color, (0,0,self.img_width,self.img_height), 8)
+        
+    def update(self):
+        if self.alpha <= 0 and self.is_fading:
+            self.kill()
+
+        self.rect.y += self.spdy
+        self.fade()
+
+    def fade(self):
+        if not self.is_fading:
+            self.alpha += self.alpha_change
+            if self.alpha >= 255:
+                self.is_fading = True
+        else:
+            self.alpha -= self.alpha_change
+        self.image.set_alpha(self.alpha)
