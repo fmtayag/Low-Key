@@ -1,3 +1,8 @@
+InDev 10 (1/10/2021)
+- Added mash event that rewards the player for mashing a selected key
+- Added auto press feature but it is unimplemented currently. Thinking of putting it as an upgrade.
+- Added road map image.
+
 InDev 9 (1/9/2021)
 - Added bubbles effect on the background
 - Changed window size

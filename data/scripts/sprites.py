@@ -294,7 +294,7 @@ class Bubble(pygame.sprite.Sprite):
         self.rect = self.image.get_rect()
         self.rect.x = randrange(0, win_size[0])
         self.rect.y = randrange(0, win_size[1])
-        self.spdy = randrange(-4, -2)
+        self.spdy = randrange(-2, -1)
         self.is_fading = False
         pygame.draw.rect(self.image, self.color, (0,0,self.img_width,self.img_height), 8)
         
