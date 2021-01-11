@@ -296,7 +296,7 @@ class Bubble(pygame.sprite.Sprite):
         self.rect.y = randrange(0, win_size[1])
         self.spdy = randrange(-2, -1)
         self.is_fading = False
-        pygame.draw.rect(self.image, self.color, (0,0,self.img_width,self.img_height), 8)
+        pygame.draw.rect(self.image, self.color, (0,0,self.img_width,self.img_height), choice([0,8]))
         
     def update(self):
         if self.alpha <= 0 and self.is_fading:
@@ -313,3 +313,87 @@ class Bubble(pygame.sprite.Sprite):
         else:
             self.alpha -= self.alpha_change
         self.image.set_alpha(self.alpha)
+
+class KFKey(pygame.sprite.Sprite):
+    def __init__(self, text, x, y, K_SIZE, color, font_name, shape, speed):
+        super().__init__()
+        self.color = color
+        self.K_SIZE = K_SIZE
+        self.shape = shape
+        self.speed = speed
+
+        # For surface
+        self.image = pygame.Surface((self.K_SIZE,self.K_SIZE))
+        self.img_width = self.image.get_width()
+        self.img_height = self.image.get_height()
+        self.image.fill(BG_COLOR)
+        self.rect = self.image.get_rect()
+        self.rect.centerx = x
+        self.rect.centery = y
+
+        # For text
+        self.text = text
+        self.font = pygame.font.Font(font_name, self.K_SIZE//2)
+        self.hide_timer = pygame.time.get_ticks()
+        self.hide_delay = 500
+        self.alpha = 255
+        self.pressed = False
+        
+        # For moving arc animation
+        self.animate_timer = pygame.time.get_ticks()
+        self.animate_delay = 50
+        self.ca = 0 # current arc config
+        self.arcs_config = [
+            [1,0,0,1],
+            [1,1,0,0],
+            [0,1,1,0],
+            [0,0,1,1]
+        ]
+        self.arcs = self.arcs_config[0]
+        self.i = 0
+        
+    def update(self):
+        if self.pressed:
+            self.hide()
+
+        if self.alpha <= 0 or self.rect.top > WIN_SZ[1]:
+            self.kill()
+
+        self.rect.y += self.speed
+        self.redraw()
+
+    def hide(self):
+        now = pygame.time.get_ticks()
+        if now - self.hide_timer > self.hide_delay:
+            self.alpha -= 20
+            self.image.set_alpha(self.alpha)
+
+    def update_arc(self):
+        now = pygame.time.get_ticks()
+        if now - self.animate_timer > self.animate_delay:
+            self.animate_timer = now
+
+            if self.ca >= len(self.arcs_config) - 1:
+                self.ca = 0
+            else:
+                self.ca += 1
+
+            self.arcs = self.arcs_config[self.ca]
+
+    def redraw(self):
+        self.image.fill(BG_COLOR)
+
+        if self.shape == "rect":
+            pygame.draw.rect(self.image, self.color, (0,0,self.img_width,self.img_height), 8)
+        elif self.shape == "roundrect":
+            pygame.draw.rect(self.image, self.color, (0,0,self.img_width,self.img_height), 4, 8)
+        elif self.shape == "round":
+            pygame.draw.rect(self.image, self.color, (0,0,self.img_width,self.img_height), 4, 32)
+        elif self.shape == "arc":
+            pygame.draw.circle(self.image, self.color, (self.image.get_width()/2, self.image.get_height()/2), 
+                               16, 5, self.arcs[0], self.arcs[1], self.arcs[2], self.arcs[3])
+            self.update_arc()
+
+        self.r_font = self.font.render(self.text, 0, self.color)
+        self.image.set_colorkey(BG_COLOR)
+        self.image.blit(self.r_font, (9,8))

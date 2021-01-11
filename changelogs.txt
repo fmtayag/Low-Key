@@ -1,3 +1,7 @@
+InDev 11(1/11/2021)
+- Made the screen a bit larger vertically
+- Added a new game mode called Keyfall. Still working on the level progression.
+
 InDev 10 (1/10/2021)
 - Added mash event that rewards the player for mashing a selected key
 - Added auto press feature but it is unimplemented currently. Thinking of putting it as an upgrade.

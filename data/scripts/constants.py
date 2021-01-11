@@ -1,5 +1,5 @@
 # Window sizes
-WIN_SZ = [512,512]
+WIN_SZ = [512,600]
 
 # Palette
 PALETTE = {"WHITE": (241,242,255),

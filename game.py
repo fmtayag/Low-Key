@@ -4,7 +4,7 @@ import pygame, os, sys
 from pygame.locals import *
 from random import randrange, choice, choices
 from itertools import repeat
-from data.scripts.sprites import Key, Particle, Shockwave, Text, PulsatingText, FadingText, Bubble
+from data.scripts.sprites import Key, Particle, Shockwave, Text, PulsatingText, FadingText, Bubble, KFKey
 from data.scripts.constants import *
 
 # Initialize pygame
@@ -28,7 +28,7 @@ def load_keys(letters, sprites, key_sprites, K_SIZE, color, font, shape):
     y = 0 # y offset
     o = 0 # row offset
     KB_XPOS = 50 # x pos of the whole keyboard
-    KB_YPOS = 320 # y pos of the whole keyboard
+    KB_YPOS = 390 # y pos of the whole keyboard
 
     for row in letters:
         x = 0
@@ -113,7 +113,7 @@ class TitleScene(Scene):
         for event in events:
             if event.type == pygame.KEYDOWN:
                 if event.key == pygame.K_z:
-                    self.manager.go_to(GameScene())
+                    self.manager.go_to(ClassicGameScene())
                 elif event.key == pygame.K_x:
                     pygame.quit()
                     sys.exit()
@@ -132,11 +132,11 @@ class TitleScene(Scene):
         self.bubbles.draw(window)
         self.sprites.draw(window)
 
-class GameScene(Scene):
+class ClassicGameScene(Scene):
     def __init__(self):
         # Game variables
         self.score = 0
-        self.offset = repeat((0,0))
+        self.offset = repeat((0,0)) # For screen shake
         self.cur_ticks = 0
         self.timer = 15 * 1000 + self.cur_ticks # n * 1000. Default: n = 60, Debug: n = 5
         self.rem_time = round((self.timer-self.cur_ticks) / 1000)
@@ -167,20 +167,14 @@ class GameScene(Scene):
         self.chars = list()
         load_keys(self.letters, self.sprites, self.key_sprites, self.K_SIZE, self.color, GAME_FONT, self.key_shape)
 
-        # Texts
-        self.text_score = PulsatingText(WIN_SZ[0]/2, 100, self.score, GAME_FONT, 48, self.color)
+        # Texts for the game
+        self.text_score = PulsatingText(WIN_SZ[0]/2, 100, self.score, GAME_FONT, 64, self.color)
         timer_text = f"T{self.rem_time}"
-        self.text_time = PulsatingText(256, 152, timer_text, GAME_FONT, 32, PALETTE["WHITE"])
-        self.text_title = Text(88,16, "Keyboard", GAME_FONT, 16, PALETTE["WHITE"])
-        self.text_title2 = Text(88,32, "Smasher", GAME_FONT, 16, PALETTE["WHITE"])
-        self.text_ver = Text(78,48, "v.A5", GAME_FONT, 16, PALETTE["WHITE"])
+        self.text_time = PulsatingText(WIN_SZ[0]/2, 200, timer_text, GAME_FONT, 48, PALETTE["WHITE"])
         self.sprites.add(self.text_score)
         self.sprites.add(self.text_time)
-        self.sprites.add(self.text_ver)
-        self.sprites.add(self.text_title)
-        self.sprites.add(self.text_title2)
 
-        # For the pause screen
+        # Texts for the pause screen
         self.paused_texts = pygame.sprite.Group()
         txt_paused = Text(WIN_SZ[0]/2, WIN_SZ[1]/2, "PAUSED", GAME_FONT, 48, PALETTE["WHITE"])
         txt_resume = Text(WIN_SZ[0]/2, WIN_SZ[1]/1.65, "[ESC] Resume", GAME_FONT, 24, PALETTE["WHITE"])
@@ -222,10 +216,77 @@ class GameScene(Scene):
     def update(self):
         
         if not self.is_paused:
-            self.game_loop()
+           # Mash event
+            if self.choose_mash_ticks >= self.choose_mash_delay and self.selected_letter == "none":
+                row = randrange(0, len(self.letters))
+                letters_list = [c for c in self.letters[row]]
+                self.selected_letter = choice(letters_list)
+                txt_exit = FadingText(WIN_SZ[0]/2, WIN_SZ[1]/2, f"MASH {self.selected_letter}", GAME_FONT, 48, PALETTE["WHITE"], self.mash_duration * 1.5)
+                self.sprites.add(txt_exit)
 
-        # Update sprites
-        self.sprites.update()
+            if self.selected_letter != "none":
+                self.mash_ticks += 10
+
+                if self.mash_ticks >= self.mash_duration:
+                    self.selected_letter = "none"
+                    self.choose_mash_ticks = 0
+                    self.mash_ticks = 0
+            else:
+                self.choose_mash_ticks += 10
+
+            #print(self.choose_mash_ticks, self.mash_ticks)
+
+            # Increment current ticks
+            self.cur_ticks += 10
+
+            # Act on key presses
+            if len(self.chars) != 0:
+                for sprite in self.key_sprites:
+                    if sprite.text.lower() in self.chars and not sprite.pressed:
+                        sprite.unhide()
+                        sprite.pressed = True
+
+                        # Add score
+                        self.score += 1
+                        self.text_score.text = self.score
+
+                        # Spawn particle
+                        spawn_particles(self.sprites, self.particles, sprite.rect.centerx, sprite.rect.centery, self.color_palette, 2)
+
+                        # Produce iterable for screen sahke
+                        self.offset = shake(10,5)
+
+                        # Spawn shockwave / ripple...whatever you call it
+                        s = Shockwave(sprite.rect.centerx, sprite.rect.centery, self.color, self.K_SIZE)
+                        self.sprites.add(s)
+
+                        # Mash event
+                        if sprite.text == self.selected_letter:
+                            txt_mash = FadingText(randrange(0, WIN_SZ[0]), randrange(0, WIN_SZ[1]/2), f"TIME!", GAME_FONT, 24, PALETTE["WHITE"], 500)
+                            self.sprites.add(txt_mash)
+                            self.timer += 0.2 * 1000
+            
+            # Unpress the key if it is not in self.chars
+            for sprite in self.key_sprites:
+                if sprite.text.lower() not in self.chars:
+                    sprite.pressed = False
+
+            # Spawn bubbles
+            if len(self.bubbles) <= self.score // 50 and len(self.bubbles) <= 20:
+                b = Bubble(WIN_SZ, PALETTE["CYAN_PAL"])
+                self.sprites.add(b)
+                self.bubbles.add(b)
+
+            # Update time
+            if self.rem_time <= 0:
+                self.rem_time = 0
+            else:
+                self.rem_time = round((self.timer-self.cur_ticks) / 1000)
+
+            self.text_time.text = f"T{self.rem_time}" # Update timer text
+
+            # Update sprites
+            self.sprites.update()
 
     def draw(self, window):
         if not self.is_paused:
@@ -235,75 +296,112 @@ class GameScene(Scene):
         else:
             self.paused_texts.draw(window)
 
-    def game_loop(self):
-        # Mash event
-        if self.choose_mash_ticks >= self.choose_mash_delay and self.selected_letter == "none":
-            row = randrange(0, len(self.letters))
-            letters_list = [c for c in self.letters[row]]
-            self.selected_letter = choice(letters_list)
-            txt_exit = FadingText(WIN_SZ[0]/2, WIN_SZ[1]/2, f"MASH {self.selected_letter}", GAME_FONT, 48, PALETTE["WHITE"], self.mash_duration * 1.5)
-            self.sprites.add(txt_exit)
+class KeyfallGameScene(Scene):
+    # Still brainstorming. The gameplay isn't fun currently.
+    def __init__(self):
 
-        if self.selected_letter != "none":
-            self.mash_ticks += 10
+        # Game variables
+        self.score = 0
+        self.offset = repeat((0,0)) # For screen shake
+        self.is_paused = False
 
-            if self.mash_ticks >= self.mash_duration:
-                self.selected_letter = "none"
-                self.choose_mash_ticks = 0
-                self.mash_ticks = 0
+        # Keys
+        self.color = PALETTE["CYAN"]
+        self.color_palette = PALETTE["CYAN_PAL"]
+        self.key_shape = "roundrect" # rect, roundrect, round, arc
+        self.K_SIZE = 32 # key size
+        self.letters = "QWERTYUIOPASDFGHJKLZXCVBNM"
+        self.letters = [char for char in self.letters]
+        self.chars = list()
+
+        # Sprite groups
+        self.sprites = pygame.sprite.Group()
+        self.key_sprites = pygame.sprite.Group()
+        self.particles = pygame.sprite.Group()
+        self.bubbles = pygame.sprite.Group()
+
+        # Texts
+        self.text_score = PulsatingText(WIN_SZ[0]/2, WIN_SZ[1]/1.2, self.score, GAME_FONT, 64, PALETTE["WHITE"])
+        self.sprites.add(self.text_score)
+
+    def handle_events(self, events):
+        for event in events:
+            if event.type == pygame.KEYDOWN:
+                if event.key == pygame.K_ESCAPE:
+                    self.is_paused = not self.is_paused
+                if event.key == pygame.K_x and self.is_paused:
+                    self.manager.go_to(TitleScene())
+
+                if not self.is_paused:
+                    self.chars.append(chr(event.key))
+    
+        #print(self.chars)
+
+    def update(self):
+        if not self.is_paused:
+
+            # Act on key presses
+            if len(self.chars) != 0:
+                for sprite in self.key_sprites:
+                    if sprite.text.lower() in self.chars and not sprite.pressed:
+                        sprite.hide()
+                        sprite.pressed = True
+                        sprite.speed = 0
+
+                        # Add score
+                        self.score += 1
+                        self.text_score.text = self.score
+
+                        # Spawn shockwave / ripple...whatever you call it
+                        s = Shockwave(sprite.rect.centerx, sprite.rect.centery, self.color, self.K_SIZE)
+                        self.sprites.add(s)
+
+                        # Spawn particle
+                        spawn_particles(self.sprites, self.particles, sprite.rect.centerx, sprite.rect.centery, self.color_palette, 2)
+
+                        # Produce iterable for screen sahke
+                        self.offset = shake(10,5)
+                        
+                        self.chars = list()
+                        break
+            
+            # Produces a pretty cool bug!
+            # Unpress the key if it is not in self.chars
+            #for sprite in self.key_sprites:
+                #if sprite.text.lower() not in self.chars:
+                    #sprite.pressed = False
+
+            # Spawn bubbles
+            if len(self.bubbles) <= self.score // 50 and len(self.bubbles) <= 20:
+                b = Bubble(WIN_SZ, PALETTE["CYAN_PAL"])
+                self.sprites.add(b)
+                self.bubbles.add(b)        
+
+            # Spawn key
+            if len(self.key_sprites) < 8:
+                has_duplicate = False
+                k = KFKey(choice(self.letters), randrange(32, WIN_SZ[0]-32), randrange(-256,-32), self.K_SIZE, self.color, GAME_FONT, self.key_shape, randrange(2,4))
+
+                for sprite in self.key_sprites:
+                    if sprite.text.lower() == k.text.lower():
+                        has_duplicate = True
+
+                # Prevent overlapping sprites
+                if not has_duplicate and not pygame.sprite.spritecollide(k, self.key_sprites, True):
+                    self.sprites.add(k)
+                    self.key_sprites.add(k)
+
+            self.sprites.update()
+
+    def draw(self, window):
+        if not self.is_paused:
+            window.fill(BG_COLOR)
+            self.bubbles.draw(window)
+            self.sprites.draw(window)
+            window.blit(window, next(self.offset))
+            self.sprites.draw(window)
         else:
-            self.choose_mash_ticks += 10
-
-        #print(self.choose_mash_ticks, self.mash_ticks)
-
-        # Increment current ticks
-        self.cur_ticks += 10
-
-        # Act on key presses
-        if len(self.chars) != 0:
-            for sprite in self.key_sprites:
-                if sprite.text.lower() in self.chars and not sprite.pressed:
-                    sprite.unhide()
-                    sprite.pressed = True
-
-                    # Add score
-                    self.score += 1
-                    self.text_score.text = self.score
-
-                    # Spawn particle
-                    spawn_particles(self.sprites, self.particles, sprite.rect.centerx, sprite.rect.centery, self.color_palette, 2)
-
-                    # Produce iterable for screen sahke
-                    self.offset = shake(10,5)
-
-                    # Spawn shockwave / ripple...whatever you call it
-                    s = Shockwave(sprite.rect.centerx, sprite.rect.centery, self.color, self.K_SIZE)
-                    self.sprites.add(s)
-
-                    # Mash event
-                    if sprite.text == self.selected_letter:
-                        txt_mash = FadingText(randrange(0, WIN_SZ[0]), randrange(0, WIN_SZ[1]/2), f"TIME!", GAME_FONT, 24, PALETTE["WHITE"], 500)
-                        self.sprites.add(txt_mash)
-                        self.timer += 0.2 * 1000
-        
-        # Spawn bubbles
-        if len(self.bubbles) <= self.score // 50 and len(self.bubbles) <= 20:
-            b = Bubble(WIN_SZ, PALETTE["CYAN_PAL"])
-            self.sprites.add(b)
-            self.bubbles.add(b)
-
-        # Unpress the key if it is not in self.chars
-        for sprite in self.key_sprites:
-            if sprite.text.lower() not in self.chars:
-                sprite.pressed = False
-
-        # Update time
-        if self.rem_time <= 0:
-            self.rem_time = 0
-        else:
-            self.rem_time = round((self.timer-self.cur_ticks) / 1000)
-
-        self.text_time.text = f"T{self.rem_time}" # Update timer text
+            self.paused_texts.draw(window)
 
 class GameOverScene(Scene):
     def __init__(self, score):
@@ -342,10 +440,11 @@ def main():
     # Initialize the window
     window = pygame.display.set_mode(WIN_SZ, HWSURFACE|DOUBLEBUF)
     pygame.display.set_caption(TITLE)
+    pygame.mouse.set_cursor(*pygame.cursors.tri_left)
 
     # Loop
     running = True
-    manager = SceneManager(TitleScene())
+    manager = SceneManager(KeyfallGameScene())
     clock = pygame.time.Clock()
     FPS = 60
 
