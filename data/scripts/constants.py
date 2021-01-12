@@ -1,4 +1,4 @@
-# Window sizes
+# Window size
 WIN_SZ = [512,600]
 
 # Palette

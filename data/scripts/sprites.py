@@ -315,12 +315,17 @@ class Bubble(pygame.sprite.Sprite):
         self.image.set_alpha(self.alpha)
 
 class KFKey(pygame.sprite.Sprite):
-    def __init__(self, text, x, y, K_SIZE, color, font_name, shape, speed):
+    def __init__(self, text, x, y, K_SIZE, color, font_name, shape, speed, is_bomb):
         super().__init__()
-        self.color = color
+        self.is_bomb = is_bomb
+        if not self.is_bomb:
+            self.color = color
+        else:
+            self.color = (255, 0, 0)
         self.K_SIZE = K_SIZE
         self.shape = shape
         self.speed = speed
+        self.radius = self.K_SIZE / 2 # For collision detection
 
         # For surface
         self.image = pygame.Surface((self.K_SIZE,self.K_SIZE))
@@ -330,7 +335,7 @@ class KFKey(pygame.sprite.Sprite):
         self.rect = self.image.get_rect()
         self.rect.centerx = x
         self.rect.centery = y
-
+        
         # For text
         self.text = text
         self.font = pygame.font.Font(font_name, self.K_SIZE//2)
@@ -397,3 +402,36 @@ class KFKey(pygame.sprite.Sprite):
         self.r_font = self.font.render(self.text, 0, self.color)
         self.image.set_colorkey(BG_COLOR)
         self.image.blit(self.r_font, (9,8))
+
+class Blast(pygame.sprite.Sprite):
+    def __init__(self, x, y):
+        super().__init__()
+        # The surface
+        self.image = pygame.Surface((256,256)).convert_alpha()
+        self.image.set_colorkey('black')
+        self.rect = self.image.get_rect()
+        self.rect.centerx = x
+        self.rect.centery = y
+        self.img_width = self.image.get_width()
+        self.color = (255, 0, 0)
+        self.alpha = 255
+        
+        # The circle
+        self.expand_timer = pygame.time.get_ticks()
+        self.expand_delay = 10
+        self.radius = 2
+        self.c_width = 5
+
+    def update(self):
+        self.expand()
+        if self.alpha <= 0:
+            self.kill()
+
+    def expand(self):
+        now = pygame.time.get_ticks()
+        if now - self.expand_timer > self.expand_delay:
+            self.alpha -= 8
+            self.radius += 4
+            self.image.fill((0,0,0,0))
+            self.image.set_alpha(self.alpha)
+        pygame.draw.circle(self.image, self.color, self.image.get_rect().center, self.radius, self.c_width)

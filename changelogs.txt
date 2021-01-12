@@ -1,3 +1,7 @@
+InDev 12(1/12/2021)
+- Completed the "Keyfall" game mode. 
+Very close to wrapping up now...
+
 InDev 11(1/11/2021)
 - Made the screen a bit larger vertically
 - Added a new game mode called Keyfall. Still working on the level progression.
