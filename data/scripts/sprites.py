@@ -8,6 +8,11 @@ class Key(pygame.sprite.Sprite):
         self.color = color
         self.K_SIZE = K_SIZE
         self.shape = shape
+        self.hidden = True
+        self.hide_timer = pygame.time.get_ticks()
+        self.hide_delay = 500
+        self.alpha = 255
+        self.pressed = False
 
         # For surface
         if not spacebar:
@@ -24,11 +29,6 @@ class Key(pygame.sprite.Sprite):
         # For text
         self.text = text
         self.font = pygame.font.Font(font_name, self.K_SIZE//2)
-        self.hidden = True
-        self.hide_timer = pygame.time.get_ticks()
-        self.hide_delay = 500
-        self.alpha = 255
-        self.pressed = False
         
         # For moving arc animation
         self.animate_timer = pygame.time.get_ticks()
@@ -163,13 +163,17 @@ class Shockwave(pygame.sprite.Sprite):
             pygame.draw.circle(self.image, self.color, self.image.get_rect().center, self.radius, self.c_width)
 
 class Text(pygame.sprite.Sprite):
-    def __init__(self, x, y, text, font_type, size, color):
+    def __init__(self, x, y, text, font_type, size, color, centered=True):
         super().__init__()
         self.image = pygame.Surface((size*8 + len(str(text)) * (size/2), size*8)).convert_alpha()
         self.image.set_colorkey('black')
         self.rect = self.image.get_rect()
-        self.rect.centerx = x
-        self.rect.centery = y
+        if centered:
+            self.rect.centerx = x
+            self.rect.centery = y
+        else:
+            self.rect.x = x
+            self.rect.y = y
 
         # The text
         self.text = str(text)
@@ -179,7 +183,10 @@ class Text(pygame.sprite.Sprite):
         self.color = color
         self.font = pygame.font.Font(self.font_type, self.size)
         self.rendered = self.font.render(str(self.text), 0, self.color)
-        self.rendered_rect = self.rendered.get_rect(center=(self.image.get_width()/2, self.image.get_height()/2))
+        if centered:
+            self.rendered_rect = self.rendered.get_rect(center=(self.image.get_width()/2, self.image.get_height()/2))
+        else:
+            self.rendered_rect = self.rendered.get_rect()
         self.image.blit(self.rendered, self.rendered_rect)
 
     def update(self):
@@ -283,20 +290,20 @@ class Bubble(pygame.sprite.Sprite):
     def __init__(self, win_size, colors):
         super().__init__()
         self.color = choice(colors)
-        self.size = randrange(8,32)
+        self.size = 8
         self.image = pygame.Surface((self.size,self.size)).convert_alpha()
         self.image.fill(BG_COLOR)
         self.img_width = self.image.get_width()
         self.img_height = self.image.get_height()
         self.alpha = 0
-        self.alpha_change = randrange(5,10)
+        self.alpha_change = randrange(3,5)
         self.image.set_alpha(self.alpha)
         self.rect = self.image.get_rect()
         self.rect.x = randrange(0, win_size[0])
         self.rect.y = randrange(0, win_size[1])
         self.spdy = randrange(-2, -1)
         self.is_fading = False
-        pygame.draw.rect(self.image, self.color, (0,0,self.img_width,self.img_height), choice([0,8]))
+        pygame.draw.rect(self.image, self.color, (0,0,self.img_width,self.img_height))
         
     def update(self):
         if self.alpha <= 0 and self.is_fading:

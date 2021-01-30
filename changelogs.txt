@@ -1,3 +1,10 @@
+InDev 13(1/30/2021)
+- Added stats screen
+- Revamped title screen
+- Improved graphics
+- Added sound effects
+- Added countdown before a game starts
+
 InDev 12(1/12/2021)
 - Completed the "Keyfall" game mode. 
 Very close to wrapping up now...
