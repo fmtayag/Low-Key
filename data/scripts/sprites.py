@@ -165,7 +165,7 @@ class Shockwave(pygame.sprite.Sprite):
 class Text(pygame.sprite.Sprite):
     def __init__(self, x, y, text, font_type, size, color, centered=True):
         super().__init__()
-        self.image = pygame.Surface((size*8 + len(str(text)) * (size/2), size*8)).convert_alpha()
+        self.image = pygame.Surface((size*8 + len(str(text)) * size, size*8)).convert_alpha()
         self.image.set_colorkey('black')
         self.rect = self.image.get_rect()
         if centered:

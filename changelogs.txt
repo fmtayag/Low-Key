@@ -1,3 +1,9 @@
+Release 1.0.0 (1/31/2021)
+- Release!!
+- General polishing
+- Bug fixing
+- Added a "time" reward alongside the "score" reward for a mash event
+
 InDev 13(1/30/2021)
 - Added stats screen
 - Revamped title screen

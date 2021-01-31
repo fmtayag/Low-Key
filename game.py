@@ -10,7 +10,7 @@ AUTHOR = "zyenapz"
 EMAIL = "zyenapz@gmail.com"
 WEBSITE = "zyenapz.github.io"
 
-import pygame, os, sys, pickle
+import pygame, os, sys, pickle, datetime
 from pygame.locals import *
 from random import randrange, choice, choices
 from itertools import repeat
@@ -125,9 +125,16 @@ class GameData:
 game_data = GameData()
 
 # Load game data
-infile = open(os.path.join(DATA_DIR, "user_data.dat"), "rb")
-game_data = pickle.load(infile)
-infile.close()
+try:
+    infile = open(os.path.join(DATA_DIR, "user_data.dat"), "rb")
+    game_data = pickle.load(infile)
+    infile.close()
+except:
+    # Save game data
+    outfile = open(os.path.join(DATA_DIR, "user_data.dat"), "wb")
+    pickle.dump(game_data, outfile)
+    outfile.close()
+
 
 class TitleScene(Scene):
     def __init__(self):
@@ -251,11 +258,15 @@ class StatsScene(Scene):
         self.img_background = load_png("background.png", IMG_DIR, 8)
 
         # Texts
-        self.text_statsheader = Text(self.stats_area.get_width() / 2,64, "STATS", GAME_FONT, 48, PALETTE['WHITE'])
-        self.text_highscore = Text(16,128, f"Hi-score: {game_data.high_score}", GAME_FONT, 28, PALETTE['WHITE'], False)
-        self.text_timespressed = Text(16, 184, f"Presses: {game_data.times_pressed}", GAME_FONT, 28, PALETTE['WHITE'], False)
-        self.text_playtime = Text(16, 240, f"Play time: {round(game_data.play_time / 1000)}s", GAME_FONT, 28, PALETTE['WHITE'], False)
-        self.text_exitbutton = Text(self.stats_area.get_width() / 2, self.stats_area.get_height() * 0.9, "[ESC]", GAME_FONT, 28, PALETTE['WHITE'])
+        self.text_statsheader = Text(self.stats_area.get_width() / 2,64, "STATS", GAME_FONT, 44, PALETTE['WHITE'])
+        self.text_highscore = Text(16,128, f"Hi-score: {game_data.high_score}", GAME_FONT, 24, PALETTE['WHITE'], False)
+        self.text_timespressed = Text(16, 184, f"Presses: {game_data.times_pressed}", GAME_FONT, 24, PALETTE['WHITE'], False)
+        # Compute time
+        minutes = round(game_data.play_time / 1000) // 60
+        seconds = round(game_data.play_time / 1000) % 60
+        time = f"{minutes}m{seconds}s"
+        self.text_playtime = Text(16, 240, f"Play time: {time}", GAME_FONT, 22, PALETTE['WHITE'], False)
+        self.text_exitbutton = Text(self.stats_area.get_width() / 2, self.stats_area.get_height() * 0.9, "[ESC]", GAME_FONT, 24, PALETTE['WHITE'])
 
         self.stats_texts.add(self.text_statsheader)
         self.stats_texts.add(self.text_highscore)
@@ -302,7 +313,7 @@ class ClassicGameScene(Scene):
         self.choose_mash_delay = 5000
         self.mash_duration = 3000
         self.mash_ticks = 0
-        self.mash_reward = 1
+        self.mash_reward = 2
         self.selected_letter = "none"
         self.mash_reward_score = 2
         self.get_ready_ticks = 0
@@ -409,7 +420,7 @@ class ClassicGameScene(Scene):
                     self.choose_mash_ticks = 0
                     self.mash_ticks = 0
                     self.mash_duration = randrange(2000,3000)
-                    self.mash_reward = 1
+                    self.mash_reward = 2
             else:
                 self.choose_mash_ticks += 10
 
@@ -440,10 +451,16 @@ class ClassicGameScene(Scene):
 
                         # Mash event reward
                         if sprite.text == self.selected_letter:
-                            txt_mash = FadingText(randrange(0, WIN_SZ[0]), randrange(0, WIN_SZ[1]/2), f"+{round(self.mash_reward)}", GAME_FONT, 24, PALETTE["WHITE"], 500)
-                            self.sprites.add(txt_mash)
-                            self.mash_reward += 0.05
-                            self.score += round(self.mash_reward)
+                            reward_roll = choice(choices(("score", "time"), weights=[7,3]))
+                            if reward_roll == "score":
+                                txt_mash = FadingText(randrange(0, WIN_SZ[0]), randrange(0, WIN_SZ[1]/2), f"+{round(self.mash_reward)}", GAME_FONT, 24, PALETTE["WHITE"], 500)
+                                self.sprites.add(txt_mash)
+                                self.mash_reward += 0.05
+                                self.score += round(self.mash_reward)
+                            elif reward_roll == "time":
+                                txt_mash = FadingText(randrange(0, WIN_SZ[0]), randrange(0, WIN_SZ[1]/2), "+TIME!", GAME_FONT, 24, PALETTE["WHITE"], 500)
+                                self.sprites.add(txt_mash)
+                                self.timer += 100
                             choice(sfx_awards).play()
 
                         game_data.times_pressed += 1
@@ -579,6 +596,7 @@ def main():
     window = pygame.display.set_mode(WIN_SZ, HWSURFACE|DOUBLEBUF)
     pygame.display.set_caption(TITLE)
     pygame.mouse.set_visible = False
+    pygame.display.set_icon(load_png("icon.png", IMG_DIR, 1))
 
     # Loop
     running = True

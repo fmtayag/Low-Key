@@ -1,0 +1,8 @@
+things to do
+
+- splash screen
+- menu screen
+- play screen
+- category select screen (maybe not)
+- stats screen
+- shop screen
