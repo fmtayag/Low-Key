@@ -38,6 +38,7 @@ def load_sound(filename, sfx_dir, volume):
 
 sfx_enter = load_sound("enter.wav", SFX_DIR, 0.5)
 sfx_select = load_sound("select.wav", SFX_DIR, 0.5)
+sfx_denied = load_sound("denied.wav", SFX_DIR, 0.5)
 sfx_presses = [
     load_sound("press1.wav", SFX_DIR, 0.1),
     load_sound("press2.wav", SFX_DIR, 0.1),
@@ -347,9 +348,11 @@ class ClassicGameScene(Scene):
 
         # Texts for the game
         self.text_readytime = PulsatingText(WIN_SZ[0]/2, 300, "Get Ready", GAME_FONT, 48, self.color)
+        self.text_scorelabel = Text(WIN_SZ[0]/2, 60, "Score", GAME_FONT, 64, self.color)
         self.text_score = PulsatingText(WIN_SZ[0]/2, 100, self.score, GAME_FONT, 64, self.color)
         timer_text = f"T{self.rem_time}"
         self.text_time = PulsatingText(WIN_SZ[0]/2, 200, timer_text, GAME_FONT, 48, PALETTE["WHITE"])
+        #self.sprites.add(self.text_scorelabel)
         self.sprites.add(self.text_score)
         self.sprites.add(self.text_time)
         self.sprites.add(self.text_readytime)
@@ -376,7 +379,10 @@ class ClassicGameScene(Scene):
                 else:
                     try:
                         if chr(event.key).upper() in "1234567890QWERTYUIOPASDFGHJKLZXCVBNM[];',./-=" or event.key == pygame.K_SPACE:
-                            choice(sfx_presses).play()
+                            if self.is_ready:
+                                choice(sfx_presses).play()
+                            else:
+                                sfx_denied.play()
                     except:
                         pass
         
@@ -407,7 +413,7 @@ class ClassicGameScene(Scene):
             # Mash event
             if self.choose_mash_ticks >= self.choose_mash_delay and self.selected_letter == "none":
                 row = randrange(0, len(self.letters))
-                letters_list = [c for c in self.letters[row]]
+                letters_list = [c for c in self.letters[0] if (c != "O") and (c != "0") and (c != " ") and (c != "")]
                 self.selected_letter = choice(letters_list)
                 txt_exit = FadingText(WIN_SZ[0]/2, WIN_SZ[1]/2, f"SMASH {self.selected_letter}!", GAME_FONT, 48, PALETTE["WHITE"], self.mash_duration * 1.5)
                 self.sprites.add(txt_exit)
@@ -497,8 +503,10 @@ class ClassicGameScene(Scene):
                 self.text_readytime.text = f"{self.get_ready_delay // 1000 - round(self.get_ready_ticks // 1000)}"
             if self.get_ready_ticks > self.get_ready_delay - 100:
                 self.is_ready = True
-                self.text_go = FadingText(WIN_SZ[0]/2, 300, "Smash!", GAME_FONT, 56, self.color, 1000)
+                self.text_go = FadingText(WIN_SZ[0]/2, 290, "Press", GAME_FONT, 48, self.color, 3000)
+                self.text_go2 = FadingText(WIN_SZ[0]/2, 340, "Keys!", GAME_FONT, 48, self.color, 3000)
                 self.sprites.add(self.text_go)
+                self.sprites.add(self.text_go2)
                 self.text_readytime.kill()
                 sfx_go.play()
             for key in self.key_sprites:
@@ -538,7 +546,6 @@ class GameOverScene(Scene):
         self.text_go = Text(WIN_SZ[0]/2, WIN_SZ[1]/2 - 198, "Game", GAME_FONT, 96, PALETTE["WHITE"])
         self.text_go2 = Text(WIN_SZ[0]/2, WIN_SZ[1]/2 - 96, "Over", GAME_FONT, 96, PALETTE["WHITE"])
         self.text_score = Text(WIN_SZ[0]/2, WIN_SZ[1]/2, f"Score: {self.score}", GAME_FONT, 32, PALETTE["WHITE"])
-        # TODO - make a comments function, complimenting the player
         self.text_comment = Text(WIN_SZ[0]/2, WIN_SZ[1]/1.6, self.generate_comment(self.score), GAME_FONT, 32, PALETTE["WHITE"])
         self.text_return = Text(WIN_SZ[0]/2, WIN_SZ[1]/1.4, "[RETURN]", GAME_FONT, 32, PALETTE["WHITE"])
 

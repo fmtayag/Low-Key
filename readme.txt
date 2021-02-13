@@ -1,5 +1,5 @@
 Low Key
-Release version: 1.0.0
+Release version: 1.0.1
 Operating System(s): Windows
 Author: zyenapz
 E-mail: zyenapz@gmail.com
@@ -21,3 +21,8 @@ Credits
 --------
 Programming, art, sound effects by zyenapz
 Font: 'Press Start' downloaded from codeman38
+
+------------------
+Update 1.0.1 (13th February, 2021)
+- Removed "O" and "0" for the mash event since the two can be confused with each other
+- Changed "SMASH!" to "Press keys!" since some players found the former confusing
