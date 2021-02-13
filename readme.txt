@@ -26,3 +26,4 @@ Font: 'Press Start' downloaded from codeman38
 Update 1.0.1 (13th February, 2021)
 - Removed "O" and "0" for the mash event since the two can be confused with each other
 - Changed "SMASH!" to "Press keys!" since some players found the former confusing
+- Added a "denied" sound effect when the player presses key when the game is not ready yet.
